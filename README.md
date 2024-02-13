@@ -28,7 +28,7 @@ ToyRenderer --
         |-- Vector.h    -- 数学库,实现了 Vector 和 Matrix
         |-- Model.h		-- 模型的加载
     | -- src
-    	| -- main.cpp   -- 程序入口
+    	| -- test.cpp   -- 程序入口
 
 ```
 
