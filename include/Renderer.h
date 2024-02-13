@@ -159,11 +159,11 @@ public:
             // vertex_shader
             vertex.pos = _vertex_shader(k,vertex.context);
 
-            float w = vertex.pos.w;
+            float w = Abs (vertex.pos.w);
 
             // 裁剪
             if(w == 0.0f)return false;
-            if(vertex.pos.z<0.0f || vertex.pos.z > w)return false;
+            if(vertex.pos.z<-w || vertex.pos.z > w)return false;
             if(vertex.pos.x<-w || vertex.pos.x>w)return false;
             if(vertex.pos.y<-w || vertex.pos.y>w)return false;
 

@@ -226,9 +226,9 @@ struct Vector<3,T>
         return *this;
     }
 
-    inline Vector<4,T> xzy1()const
+    inline Vector<4,T> xyz1()const
     {
-        return Vector<4,T>(x,z,y,1);
+        return Vector<4,T>(x,y,z,1);
     }
 };
 
@@ -735,7 +735,7 @@ struct Matrix
 		Matrix<ROW-1, COL-1, T> ret;
 		for (size_t r = 0; r < ROW - 1; r++) {
 			for (size_t c = 0; c < COL - 1; c++) {
-				ret.m[r][c] = data[r < row? r : r + 1][c < col? c : c + 1];
+				ret.data[r][c] = data[r < row? r : r + 1][c < col? c : c + 1];
 			}
 		}
 		return ret;
@@ -881,7 +881,7 @@ inline Matrix<ROW, COL, T> operator / (const Matrix<ROW, COL, T>& a, T x) {
     Matrix<ROW, COL, T> out;
     for (size_t j = 0; j < ROW; j++) {
         for (size_t i = 0; i < COL; i++) {
-            out.m[j][i] = a.m[j][i] / x;
+            out.data[j][i] = a.data[j][i] / x;
         }
     }
     return out;
@@ -1023,7 +1023,7 @@ inline static uint32_t vector_to_color(const Vec4f& color) {
 
 // 矢量转换整数颜色
 inline static uint32_t vector_to_color(const Vec3f& color) {
-	return vector_to_color(color.xzy1());
+	return vector_to_color(color.xyz1());
 }
 
 // 整数颜色到矢量
@@ -1077,26 +1077,26 @@ inline static Mat4x4f matrix_set_scale(float x, float y, float z) {
 
 // 摄影机变换矩阵：eye/视点位置，at/看向哪里，up/指向上方的矢量
 inline static Mat4x4f matrix_set_lookat(const Vec3f& eye, const Vec3f& at, const Vec3f& up) {
-    Vec3f zaxis = vector_normalize(at - eye);
+    Vec3f zaxis = vector_normalize(eye - at);
     Vec3f xaxis = vector_normalize(vector_cross(up, zaxis));
-    Vec3f yaxis = vector_cross(zaxis, xaxis);
+    Vec3f yaxis = -vector_cross(zaxis, xaxis);
     Mat4x4f m;
-    m.SetCol(0, Vec4f(xaxis.x, xaxis.y, xaxis.z, -vector_dot(eye, xaxis)));
-    m.SetCol(1, Vec4f(yaxis.x, yaxis.y, yaxis.z, -vector_dot(eye, yaxis)));
-    m.SetCol(2, Vec4f(zaxis.x, zaxis.y, zaxis.z, -vector_dot(eye, zaxis)));
+    m.SetCol(0, Vec4f(xaxis.x, xaxis.y, xaxis.z, -vector_dot(xaxis, eye)));
+    m.SetCol(1, Vec4f(yaxis.x, yaxis.y, yaxis.z, -vector_dot(yaxis, eye)));
+    m.SetCol(2, Vec4f(zaxis.x, zaxis.y, zaxis.z, -vector_dot(zaxis, eye)));
     m.SetCol(3, Vec4f(0.0f, 0.0f, 0.0f, 1.0f));
     return m;
 }
 
-// D3DXMatrixPerspectiveFovLH
+// opengl MatrixPerspectiveFovLH
 inline static Mat4x4f matrix_set_perspective(float fovy, float aspect, float zn, float zf) {
-    float fax = 1.0f / (float)tan(fovy * 0.5f);
+    float tanHalfFovy = tan(fovy / 2);
     Mat4x4f m = matrix_set_zero();
-    m.data[0][0] = (float)(fax / aspect);
-    m.data[1][1] = (float)(fax);
-    m.data[2][2] = zf / (zf - zn);
-    m.data[3][2] = - zn * zf / (zf - zn);
-    m.data[2][3] = 1;
+    m.data[0][0] = tanHalfFovy / aspect;
+    m.data[1][1] = tanHalfFovy;
+    m.data[2][2] = -( zn + zf ) / (zf - zn);
+    m.data[3][2] = - 2.0f * zn * zf / (zf - zn);
+    m.data[2][3] = -1;
     return m;
 }
 
