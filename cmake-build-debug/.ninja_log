@@ -1,0 +1,16 @@
+# ninja log v5
+1	787	7294032707079611	CMakeFiles/testProj4.dir/main.cpp.obj	af8dfed434f1b475
+0	126	7294092193310681	build.ninja	7be580baed41819b
+2	788	7294091724291740	CMakeFiles/testProj4.dir/src/main.cpp.obj	eb1b9dc2141c6cfb
+2	114	7294092167733195	testProj4.exe	511869211caacbdf
+2	359	7294090585879934	CMakeFiles/testProj4.dir/src/test.cpp.obj	1d4587f3a4ceb6f4
+1	825	7294283978784788	CMakeFiles/testProj4.dir/src/main.cpp.obj	eb1b9dc2141c6cfb
+826	942	7294283979934617	testProj4.exe	511869211caacbdf
+2	777	7294385398799418	CMakeFiles/testProj4.dir/src/main.cpp.obj	eb1b9dc2141c6cfb
+777	891	7294385399924427	testProj4.exe	511869211caacbdf
+2	881	7294424216215462	CMakeFiles/testProj4.dir/src/main.cpp.obj	eb1b9dc2141c6cfb
+881	1056	7294424217933727	testProj4.exe	511869211caacbdf
+2	954	7294424716186016	CMakeFiles/testProj4.dir/src/main.cpp.obj	eb1b9dc2141c6cfb
+954	1092	7294424717550482	testProj4.exe	511869211caacbdf
+1	930	7294429252865338	CMakeFiles/testProj4.dir/src/main.cpp.obj	eb1b9dc2141c6cfb
+931	1089	7294429254439495	testProj4.exe	511869211caacbdf
