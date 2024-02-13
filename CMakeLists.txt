@@ -3,7 +3,7 @@ project(testProj4)
 
 set(CMAKE_CXX_STANDARD 17)
 
-file(GLOB SRCS src/test2.cpp)
+file(GLOB SRCS src/test1.cpp)
 add_executable(${PROJECT_NAME} ${SRCS})
 
 

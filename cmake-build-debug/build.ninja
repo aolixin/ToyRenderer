@@ -49,8 +49,8 @@ cmake_ninja_workdir = E$:/Documents/work/cppProject/test/testProj4/cmake-build-d
 
 build cmake_object_order_depends_target_testProj4: phony || CMakeFiles/testProj4.dir
 
-build CMakeFiles/testProj4.dir/src/test2.cpp.obj: CXX_COMPILER__testProj4_Debug E$:/Documents/work/cppProject/test/testProj4/src/test2.cpp || cmake_object_order_depends_target_testProj4
-  DEP_FILE = CMakeFiles\testProj4.dir\src\test2.cpp.obj.d
+build CMakeFiles/testProj4.dir/src/test1.cpp.obj: CXX_COMPILER__testProj4_Debug E$:/Documents/work/cppProject/test/testProj4/src/test1.cpp || cmake_object_order_depends_target_testProj4
+  DEP_FILE = CMakeFiles\testProj4.dir\src\test1.cpp.obj.d
   FLAGS = -g
   INCLUDES = -IE:/Documents/work/cppProject/test/testProj4/include
   OBJECT_DIR = CMakeFiles\testProj4.dir
@@ -64,7 +64,7 @@ build CMakeFiles/testProj4.dir/src/test2.cpp.obj: CXX_COMPILER__testProj4_Debug 
 #############################################
 # Link the executable testProj4.exe
 
-build testProj4.exe: CXX_EXECUTABLE_LINKER__testProj4_Debug CMakeFiles/testProj4.dir/src/test2.cpp.obj
+build testProj4.exe: CXX_EXECUTABLE_LINKER__testProj4_Debug CMakeFiles/testProj4.dir/src/test1.cpp.obj
   FLAGS = -g
   LINK_LIBRARIES = -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
   OBJECT_DIR = CMakeFiles\testProj4.dir
