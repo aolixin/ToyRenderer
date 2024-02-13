@@ -49,3 +49,5 @@ ToyRenderer --
 https://github.com/skywind3000/RenderHelp
 
 https://bbs.huaweicloud.com/blogs/358776
+
+https://github.com/ssloy/tinyrenderer
