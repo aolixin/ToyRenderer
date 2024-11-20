@@ -19,4 +19,18 @@
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="vector.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="bitmap_renderer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="bitmap.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="gdi_renderer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>
