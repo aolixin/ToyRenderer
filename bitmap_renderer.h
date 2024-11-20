@@ -1,4 +1,5 @@
 #pragma once
+
 #ifndef RENDERER_H
 #define RENDERER_H
 
@@ -6,7 +7,7 @@
 #include<vector>
 #include<map>
 #include <functional>
-#include "vector.h"
+#include "geometry.h"
 #include "bitmap.h"
 
 struct ShaderContext

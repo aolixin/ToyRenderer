@@ -136,6 +136,8 @@
     <ClInclude Include="camera.h" />
     <ClInclude Include="gdi_renderer.h" />
     <ClInclude Include="geometry.h" />
+    <ClInclude Include="shader.h" />
+    <ClInclude Include="vertex.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -13,13 +13,13 @@ public:
     void setPos(const Vec4f& pos)
     {
         _pos = pos;
-        calcMatrix();
+        // calcMatrix();
     }
 
     void setPerspectiveForLH(float fov, float aspect, float nearZ, float farZ)
     {
         _fov = fov; _aspect = aspect; _nearZ = nearZ; _farZ = farZ;
-        calcMatrix();
+        // calcMatrix();
     }
 
 public:
@@ -27,7 +27,7 @@ public:
     Mat4x4f _worldToProjection;
 
 private:
-    void calcMatrix()
+    /* void calcMatrix()
     {
         Vec4f dir = { _target.x - _pos.x, _target.y - _pos.y, _target.z - _pos.z, 0.0f };
         Vec4f w = normallize(dir);
@@ -50,7 +50,7 @@ private:
         };
 
         _worldToProjection = mul(_worldToView, _viewToProjection);
-    }
+    } */
 
 private:
     Vec4f _pos;
