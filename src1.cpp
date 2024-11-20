@@ -1,8 +1,12 @@
 #include <windows.h>
 #include "gdi_renderer.h"
+#include "camera.h"
 
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+
+#if 1
+
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	_In_ LPSTR lpCmdLine, _In_ int nShowCmd)
 {
@@ -53,7 +57,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	UpdateWindow(hWnd);
 
 	// renderer init
-	Render render(8090, 600);
+	Render render(800, 600);
 	render.initRenderer(hWnd);
 
 	// 1.4 start message loop
@@ -72,7 +76,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	}
 
 	render.shutDown();
-	return (int)msg.wParam;
+	return static_cast<int>(msg.wParam);
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -82,6 +86,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;
+	case WM_CHAR:
+		// ÊäÈë×Ö·û
+		if (wParam == 'q' || wParam == 'Q')
+		{
+			MessageBox(hWnd, L"Q key pressed", L"Keyboard Input", MB_OK);
+		}
+		break;
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 		break;
@@ -89,3 +100,5 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	return 0;
 }
+
+#endif

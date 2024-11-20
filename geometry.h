@@ -1,13 +1,11 @@
 #pragma once
-#ifndef VECTOR_H
-#define VECTOR_H
+
+
 #include <stddef.h>
 #include <ostream>
 #include <math.h>
-#include <string.h>
 #include <assert.h>
 #include <cstdint>
-#include <stdexcept>
 #include <sstream>
 
 // Vector ÏòÁ¿¿â 
@@ -1127,6 +1125,3 @@ inline static Mat4x4f matrix_set_rotate(float x, float y, float z, float theta) 
     m.data[3][3] = 1.0f;
     return m;
 }
-
-
-#endif // VECTOR_H

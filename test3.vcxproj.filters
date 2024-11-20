@@ -18,9 +18,12 @@
     <ClCompile Include="src1.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="src2.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="vector.h">
+    <ClInclude Include="geometry.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="bitmap_renderer.h">
@@ -30,6 +33,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="gdi_renderer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="camera.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

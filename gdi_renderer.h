@@ -1,9 +1,7 @@
 #pragma once
-#pragma once
 
 #include <windows.h>
 #include <stdlib.h>
-#include <string.h>
 #include <tchar.h>
 #include <memory>
 
@@ -13,12 +11,6 @@ private:
 	int g_width = 0;
 	int g_height = 0;
 
-public:
-	Render(int w, int h) {
-		g_width = w;
-		g_height = h;
-	}
-
 	HDC g_tempDC = nullptr;
 	HBITMAP g_tempBm = nullptr;
 	HBITMAP g_oldBm = nullptr;
@@ -26,6 +18,14 @@ public:
 	std::shared_ptr<float[]> g_depthBuff = nullptr;
 
 	unsigned int bgColor = ((123 << 16) | (195 << 8) | 221);
+
+public:
+	Render(int w, int h) {
+		g_width = w;
+		g_height = h;
+	}
+
+
 
 	// ³õÊ¼»¯äÖÈ¾Æ÷ ÆÁÄ»³¤¿í ÆÁÄ»»º³å
 	void initRenderer(HWND hWnd);
@@ -55,6 +55,7 @@ void Render::initRenderer(HWND hWnd)
 
 	// ÇåÀíÆÁÄ»»º³å
 	clearBuffer();
+
 }
 
 void Render::update(HWND hWnd)
