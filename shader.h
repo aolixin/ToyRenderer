@@ -28,7 +28,7 @@ struct ShaderInput
 struct VertexAttribute
 {
 	ShaderContext context;
-	float rhw;
+	//float rhw;
 	Vec4f pos;
 	Vec2f spf;
 	Vec2i spi;

@@ -176,12 +176,13 @@ void Render::drawPrimitive(const std::vector<int>& indices2draw, const Mesh& mes
 		if (w == 0.0f)return;
 
 		if (vert_attri.pos.z < 0 || vert_attri.pos.z > w)return;
-		if (vert_attri.pos.x < -w || vert_attri.pos.x > w)return;
-		if (vert_attri.pos.y < -w || vert_attri.pos.y > w)return;
+		//if (vert_attri.pos.x < -w || vert_attri.pos.x > w)return;
+		//if (vert_attri.pos.y < -w || vert_attri.pos.y > w)return;
 
 		// 齐次除法
-		vert_attri.rhw = 1.0f / w;
-		vert_attri.pos *= vert_attri.rhw;
+		//vert_attri.rhw = 1.0f / w;
+		float rhw = 1.0f / w;
+		vert_attri.pos *= rhw;
 
 		// 映射到 [ 0,1 ]
 		vert_attri.spf.x = (vert_attri.pos.x + 1.0f) * 0.5f;
@@ -258,21 +259,21 @@ void Render::drawPrimitive(const std::vector<int>& indices2draw, const Mesh& mes
 			c = c * (1.0f / s);
 
 			// 计算当前点的 1/w，因 1/w 和屏幕空间呈线性关系，故直接重心插值
-			float rhw = g_vertexAttr[0].rhw * a + g_vertexAttr[1].rhw * b + g_vertexAttr[2].rhw * c;
+			float rhw = g_vertexAttr[0].pos.z * a + g_vertexAttr[1].pos.z * b + g_vertexAttr[2].pos.z * c;
 
 			float tmp = g_depthBuff[cy * g_width + cx];
 
 			// 进行深度测试
-			if (rhw > g_depthBuff[cy * g_width + cx]) continue;
+			if (rhw < g_depthBuff[cy * g_width + cx]) continue;
 			g_depthBuff[cy * g_width + cx] = rhw; // 记录 1/w 到深度缓存
 
 			// 还原当前像素的 w
 			float w = 1.0f / ((rhw != 0.0f) ? rhw : 1.0f);
 
 			// 计算插值系数
-			float c0 = g_vertexAttr[0].rhw * a * w;
-			float c1 = g_vertexAttr[1].rhw * b * w;
-			float c2 = g_vertexAttr[2].rhw * c * w;
+			float c0 = g_vertexAttr[0].pos.z * a * w;
+			float c1 = g_vertexAttr[1].pos.z * b * w;
+			float c2 = g_vertexAttr[2].pos.z * c * w;
 
 			ShaderContext frag_input;
 			ShaderContext& con0 = g_vertexAttr[0].context;

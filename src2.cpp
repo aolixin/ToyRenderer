@@ -96,28 +96,28 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 			auto& shader_input_ref = render.shader_input;
 
 			// sphere
-			shader_input_ref.mat_model = matrix_set_identity();
+			//shader_input_ref.mat_model = matrix_set_identity();
+			//shader_input_ref.mat_model_it = matrix_invert(shader_input_ref.mat_model).Transpose();
+			//shader_input_ref.mat_view = matrix_set_lookat(camera.pos, camera.target, camera.up);
+			//shader_input_ref.mat_proj = matrix_set_perspective(3.1415926f * 0.5f, (float)WIDTH / HEIGHT, 1.0, 500.0f);
+			//shader_input_ref.mat_mvp = shader_input_ref.mat_model * shader_input_ref.mat_view * shader_input_ref.mat_proj;
+			//render.drawCall(sphere_mesh, vert_gouraud, frag_gouraud);
+
+			// cube
+			shader_input_ref.mat_model = matrix_set_translate(0,0,5);
 			shader_input_ref.mat_model_it = matrix_invert(shader_input_ref.mat_model).Transpose();
 			shader_input_ref.mat_view = matrix_set_lookat(camera.pos, camera.target, camera.up);
 			shader_input_ref.mat_proj = matrix_set_perspective(3.1415926f * 0.5f, (float)WIDTH / HEIGHT, 1.0, 500.0f);
 			shader_input_ref.mat_mvp = shader_input_ref.mat_model * shader_input_ref.mat_view * shader_input_ref.mat_proj;
-			render.drawCall(sphere_mesh, vert_gouraud, frag_gouraud);
+			render.drawCall(cube_mesh, vert_normal, frag_normal);
 
 			// cube
-			//shader_input_ref.mat_model = matrix_set_translate(0,0,5);
-			//shader_input_ref.mat_model_it = matrix_invert(shader_input_ref.mat_model).Transpose();
-			//shader_input_ref.mat_view = matrix_set_lookat(camera.pos, camera.target, camera.up);
-			//shader_input_ref.mat_proj = matrix_set_perspective(3.1415926f * 0.5f, (float)WIDTH / HEIGHT, 1.0, 500.0f);
-			//shader_input_ref.mat_mvp = shader_input_ref.mat_model * shader_input_ref.mat_view * shader_input_ref.mat_proj;
-			//render.drawCall(cube_mesh, vert_normal, frag_normal);
-
-			//// cube
-			//shader_input_ref.mat_model = matrix_set_translate(0, 0, 9);
-			//shader_input_ref.mat_model_it = matrix_invert(shader_input_ref.mat_model).Transpose();
-			//shader_input_ref.mat_view = matrix_set_lookat(camera.pos, camera.target, camera.up);
-			//shader_input_ref.mat_proj = matrix_set_perspective(3.1415926f * 0.5f, (float)WIDTH / HEIGHT, 1.0, 500.0f);
-			//shader_input_ref.mat_mvp = shader_input_ref.mat_model * shader_input_ref.mat_view * shader_input_ref.mat_proj;
-			//render.drawCall(cube_mesh, vert_normal, frag_normal);
+			shader_input_ref.mat_model = matrix_set_translate(0, 0, 9);
+			shader_input_ref.mat_model_it = matrix_invert(shader_input_ref.mat_model).Transpose();
+			shader_input_ref.mat_view = matrix_set_lookat(camera.pos, camera.target, camera.up);
+			shader_input_ref.mat_proj = matrix_set_perspective(3.1415926f * 0.5f, (float)WIDTH / HEIGHT, 1.0, 500.0f);
+			shader_input_ref.mat_mvp = shader_input_ref.mat_model * shader_input_ref.mat_view * shader_input_ref.mat_proj;
+			render.drawCall(cube_mesh, vert_normal, frag_normal);
 
 			// swap buffer
 			render.update(hWnd);
