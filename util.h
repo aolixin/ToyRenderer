@@ -1,0 +1,65 @@
+#pragma once
+
+#include <iostream>
+#include "geometry.h"
+#include "vertex.h"
+
+constexpr float PI = 3.1415926;
+
+Mesh createSphere(float radius, int slices, int stacks)
+{
+	std::vector<Vertex> vertices;
+	std::vector<int> indices;
+
+	// Calculate the angle step for longitude and latitude
+	float lonStep = 2 * PI / slices;
+	float latStep = PI / stacks;
+
+	// Generate the vertices
+	for (int lat = 0; lat <= stacks; ++lat)
+	{
+		for (int lon = 0; lon <= slices; ++lon)
+		{
+			// Calculate the position, normal, and texture coordinates of each vertex
+			float theta = lat * latStep;
+			float phi = lon * lonStep;
+
+			float x = radius * sin(theta) * cos(phi);
+			float y = radius * cos(theta);
+			float z = radius * sin(theta) * sin(phi);
+
+			float u = static_cast<float>(lon) / static_cast<float>(slices);
+			float v = static_cast<float>(lat) / static_cast<float>(stacks);
+
+			Vec3f pos(x, y, z);
+			Vec2f uv({u, v});
+			Vec3f color(1.0f, 1.0f, 1.0f);
+			Vec3f normal(x, y, z);
+			vector_normalize(normal);
+
+			vertices.emplace_back(pos, uv, color, normal);
+		}
+	}
+
+	// Generate the indices
+	for (int lat = 0; lat < stacks; ++lat)
+	{
+		for (int lon = 0; lon < slices; ++lon)
+		{
+			int topLeft = lat * (slices + 1) + lon;
+			int topRight = topLeft + 1;
+			int bottomLeft = (lat + 1) * (slices + 1) + lon;
+			int bottomRight = bottomLeft + 1;
+
+			indices.push_back(topLeft);
+			indices.push_back(bottomLeft);
+			indices.push_back(topRight);
+
+			indices.push_back(topRight);
+			indices.push_back(bottomLeft);
+			indices.push_back(bottomRight);
+		}
+	}
+
+	return Mesh(vertices, indices);
+}

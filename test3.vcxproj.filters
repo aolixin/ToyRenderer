@@ -44,5 +44,11 @@
     <ClInclude Include="shader.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="shader_instance.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="util.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

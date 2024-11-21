@@ -27,6 +27,9 @@ private:
 public:
 	static uint32_t bgColor;
 
+	ShaderInput shader_input;
+
+
 	Render(int w, int h)
 	{
 		g_width = w;
@@ -43,9 +46,9 @@ public:
 
 	void inline drawCall(const Mesh& mesh, const VertexShader& vert, const FragmentShader& frag);
 
-	void inline drawCube();
+	void inline drawCube(Mesh& mesh, const VertexShader& vert, const FragmentShader& frag);
 	void inline drawPlane(int lt, int rt, int rb, int lb);
-	void inline drawPrimitive(const std::vector<int>&, const VertexShader&, const FragmentShader&);
+	void inline drawPrimitive(const std::vector<int>&, const Mesh&, const VertexShader&, const FragmentShader&);
 
 	void inline drawLineDDA(int x1, int y1, int x2, int y2, uint32_t color);
 	void inline drawLineBresenham(int x1, int y1, int x2, int y2, uint32_t color);
@@ -102,7 +105,7 @@ void Render::clearBuffer()
 			// 默认背景色浅蓝 R123 G195 B221
 			g_frameBuff[idx] = bgColor;
 			// 深度缓冲区 1.0f
-			g_depthBuff[idx] = 1.0f;
+			g_depthBuff[idx] = 0.0f;
 		}
 	}
 }
@@ -138,18 +141,12 @@ void Render::drawCall(const Mesh& mesh, const VertexShader& vert, const Fragment
 		auto i0 = mesh.indices[i];
 		auto i1 = mesh.indices[i + 1];
 		auto i2 = mesh.indices[i + 2];
-		drawPrimitive({i0, i1, i2}, vert, frag);
+		drawPrimitive({i0, i1, i2}, mesh, vert, frag);
 	}
 }
 
-void Render::drawCube()
+void Render::drawCube(Mesh& mesh, const VertexShader& vert, const FragmentShader& frag)
 {
-	drawPlane(0, 1, 2, 3); // 正面
-	drawPlane(1, 5, 6, 2); // 右面
-	drawPlane(4, 0, 3, 7); // 左面
-	drawPlane(4, 5, 1, 0); // 上面
-	drawPlane(3, 2, 6, 7); // 下面
-	drawPlane(5, 4, 7, 6); // 后面
 }
 
 
@@ -157,7 +154,7 @@ void Render::drawPlane(int lt, int rt, int rb, int lb)
 {
 }
 
-void Render::drawPrimitive(const std::vector<int>& indices2draw, const VertexShader& vert_shader,
+void Render::drawPrimitive(const std::vector<int>& indices2draw, const Mesh& mesh, const VertexShader& vert_shader,
                            const FragmentShader& frag_shader)
 {
 	int _min_x = 0, _max_x = 0, _min_y = 0, _max_y = 0;
@@ -173,7 +170,7 @@ void Render::drawPrimitive(const std::vector<int>& indices2draw, const VertexSha
 		vert_attri.context.varying_vec4f.clear();
 
 		// 顶点着色器
-		vert_attri.pos = vert_shader(idx, vert_attri.context);
+		vert_attri.pos = vert_shader(idx, mesh, shader_input, vert_attri.context);
 
 		float w = Abs(vert_attri.pos.w);
 		if (w == 0.0f)return;
@@ -182,6 +179,7 @@ void Render::drawPrimitive(const std::vector<int>& indices2draw, const VertexSha
 		if (vert_attri.pos.x < -w || vert_attri.pos.x > w)return;
 		if (vert_attri.pos.y < -w || vert_attri.pos.y > w)return;
 
+		// 齐次除法
 		vert_attri.rhw = 1.0f / w;
 		vert_attri.pos *= vert_attri.rhw;
 
@@ -262,6 +260,8 @@ void Render::drawPrimitive(const std::vector<int>& indices2draw, const VertexSha
 			// 计算当前点的 1/w，因 1/w 和屏幕空间呈线性关系，故直接重心插值
 			float rhw = g_vertexAttr[0].rhw * a + g_vertexAttr[1].rhw * b + g_vertexAttr[2].rhw * c;
 
+			float tmp = g_depthBuff[cy * g_width + cx];
+
 			// 进行深度测试
 			if (rhw > g_depthBuff[cy * g_width + cx]) continue;
 			g_depthBuff[cy * g_width + cx] = rhw; // 记录 1/w 到深度缓存
@@ -324,12 +324,12 @@ void Render::drawPrimitive(const std::vector<int>& indices2draw, const VertexSha
 	}
 
 	// 3. 绘制三角形边框
-	//drawLineBresenham(g_vertexAttr[0].spi.x, g_vertexAttr[0].spi.y, g_vertexAttr[1].spi.x, g_vertexAttr[1].spi.y,
-	//                  0x000000);
-	//drawLineBresenham(g_vertexAttr[1].spi.x, g_vertexAttr[1].spi.y, g_vertexAttr[2].spi.x, g_vertexAttr[2].spi.y,
-	//                  0x000000);
-	//drawLineBresenham(g_vertexAttr[2].spi.x, g_vertexAttr[2].spi.y, g_vertexAttr[0].spi.x, g_vertexAttr[0].spi.y,
-	//                  0x000000);
+	drawLineBresenham(g_vertexAttr[0].spi.x, g_vertexAttr[0].spi.y, g_vertexAttr[1].spi.x, g_vertexAttr[1].spi.y,
+	                  0x000000);
+	drawLineBresenham(g_vertexAttr[1].spi.x, g_vertexAttr[1].spi.y, g_vertexAttr[2].spi.x, g_vertexAttr[2].spi.y,
+	                  0x000000);
+	drawLineBresenham(g_vertexAttr[2].spi.x, g_vertexAttr[2].spi.y, g_vertexAttr[0].spi.x, g_vertexAttr[0].spi.y,
+	                  0x000000);
 }
 
 void Render::drawLineDDA(int x1, int y1, int x2, int y2, uint32_t color)

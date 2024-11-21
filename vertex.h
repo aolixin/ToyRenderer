@@ -9,10 +9,7 @@ public:
 	Vec2f uv;
 	Vec3f color;
 	Vec3f normal;
-	// 列表初始化
-	Vertex()
-	{
-	}
+	Vertex() = default;
 
 	Vertex(const Vec3f& pos, const Vec2f& uv, const Vec3f& color, const Vec3f& normal) : pos(pos), uv(uv), color(color),
 		normal(normal)

@@ -1311,6 +1311,14 @@ inline static Mat4x4f matrix_set_perspective(float fovy, float aspect, float zn,
 	m.data[2][2] = zf / (zf - zn);
 	m.data[3][2] = -zn * zf / (zf - zn);
 	m.data[2][3] = 1;
+
+	//float tanHalfFovy = 1 / tan(fovy / 2);
+	//Mat4x4f m = matrix_set_zero();
+	//m.data[0][0] = tanHalfFovy / aspect;
+	//m.data[1][1] = tanHalfFovy;
+	//m.data[2][2] = zf / (zf - zn);
+	//m.data[3][2] = -zn * zf / (zf - zn);
+	//m.data[2][3] = 1;
 	return m;
 }
 

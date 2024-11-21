@@ -1,16 +1,13 @@
+#if 0
 #include <windows.h>
 #include "gdi_renderer.h"
-#include "camera.h"
 #include "geometry.h"
+#include "shader_instance.h"
 
-// 定义属性和 varying 中的纹理坐标 key
-const int VARYING_TEXUV = 0;
-const int VARYING_COLOR = 1;
-const int VARYING_LIGHT = 2;
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-#if 1
+
 
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
                    _In_ LPSTR lpCmdLine, _In_ int nShowCmd)
@@ -65,86 +62,14 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	Render render(800, 600);
 	render.initRenderer(hWnd);
 
-	Vec3f red_color = {1.0f, 0.0f, 0.0f};
-	Vec3f green_color = {0.0f, 1.0f, 0.0f};
-	Vec3f blue_color = {0.0f, 0.0f, 1.0f};
-	Vec3f white_color = {1.0f, 1.0f, 1.0f};
 
-	//Mesh cubeMesh({
-	//	{
-	//		{{1, -1, -1,}, {0, 0}, {1.0f, 1.0f, 0.2f}, {}},
-	//		{{-1, -1, -1,}, {0, 1}, {0.2f, 1.0f, 1.0f}, {}},
-	//		{{-1, 1, -1,}, {1, 1}, {1.0f, 0.3f, 0.3f}, {}},
-	//		{{1, 1, -1,}, {1, 0}, {0.2f, 1.0f, 0.3f}, {}},
-	//		{{1, -1, 1,}, {0, 0}, {1.0f, 0.2f, 0.2f}, {}},
-	//		{{-1, -1, 1,}, {0, 1}, {0.2f, 1.0f, 0.2f}, {}},
-	//		{{-1, 1, 1,}, {1, 1}, {0.2f, 0.2f, 1.0f}, {}},
-	//		{{1, 1, 1,}, {1, 0}, {1.0f, 0.2f, 1.0f}, {}}
-	//	},
-	//	{
-	//		0, 2, 1, 0, 3, 2,
-	//		1, 2, 6, 1, 6, 5,
-	//		0, 7, 3, 0, 4, 7,
-	//		2, 3, 7, 2, 7, 6,
-	//		0, 1, 5, 0, 5, 4,
-	//		4, 5, 6, 4, 6, 7
-	//	}
-	//});
-	Mesh cubeMesh({
-		{
-			{{1, -1, -1,}, {0, 0}, green_color, {}},
-			{{-1, -1, -1,}, {0, 1}, white_color, {}},
-			{{-1, 1, -1,}, {1, 1}, white_color, {}},
-			{{1, 1, -1,}, {1, 0}, white_color, {}},
-			{{1, -1, 1,}, {0, 0}, white_color, {}},
-			{{-1, -1, 1,}, {0, 1}, white_color, {}},
-			{{-1, 1, 1,}, {1, 1}, blue_color, {}},
-			{{1, 1, 1,}, {1, 0}, white_color, {}}
-		},
-		{
-			0, 2, 1, 0, 3, 2,
-			1, 2, 6, 1, 6, 5,
-			0, 7, 3, 0, 4, 7,
-			2, 3, 7, 2, 7, 6,
-			0, 1, 5, 0, 5, 4,
-			4, 5, 6, 4, 6, 7
-		}
-	});
+	ShaderInput shader_input;
+	shader_input.mat_model = matrix_set_identity();
+	shader_input.mat_view = matrix_set_lookat({ 2, 3, -4 }, { 0, 0, 0 }, { 0, 1, 0 });
+	shader_input.mat_proj = matrix_set_perspective(3.1415926f * 0.5f, 800 / 600.0, 1.0, 500.0f);
+	shader_input.mat_mvp = shader_input.mat_model * shader_input.mat_view * shader_input.mat_proj;
 
-	// 定义变换矩阵：模型变换，摄像机变换，透视变换
-	//Mat4x4f mat_model = matrix_set_rotate(-1, -0.5, 1, 1); // 模型变换，旋转一定角度
-	Mat4x4f mat_model = matrix_set_identity();
-	Mat4x4f mat_view = matrix_set_lookat({2, 3, -4}, {0, 0, 0}, {0, 1, 0}); // 摄像机方位
-	Mat4x4f mat_proj = matrix_set_perspective(3.1415926f * 0.5f, 800 / 600.0, 1.0, 500.0f);
-	//mat_proj = matrix_set_identity();
-	Mat4x4f mat_mvp = mat_model * mat_view * mat_proj; // 综合变换矩阵
-
-	auto vertShader = [&](int index, ShaderContext& output) -> Vec4f
-	{
-		Vec4f pos = cubeMesh.vertices[index].pos.xyz1() * mat_mvp;
-		output.varying_vec2f[VARYING_TEXUV] = cubeMesh.vertices[index].uv;
-		output.varying_vec4f[VARYING_COLOR] = cubeMesh.vertices[index].color.xyz1();
-		//// 法向需要经过 model 矩阵的逆矩阵转置的矩阵变换，从模型坐标系转换
-		//// 到世界坐标系，光照需要在世界坐标系内进行运算
-		Vec3f normal = cubeMesh.vertices[index].normal;
-
-		//normal = (normal.xyz1() * mat_model_it).xyz();
-
-		//// 计算光照强度
-		//float intense = vector_dot(normal, vector_normalize(light_dir));
-		//// 避免越界同时加入一个常量环境光 0.1
-		//intense = Max(0.0f, intense) + 0.1;
-
-		//output.varying_float[VARYING_LIGHT] = Min(1.0f, intense);
-
-		return pos;
-	};
-
-	auto fragShader = [&](ShaderContext& input) -> Vec4f
-	{
-		return input.varying_vec4f[VARYING_COLOR];
-		return {1.0f, 1.0f, 1.0f, 1.0f};
-	};
+	shader_input.mat_model_it = matrix_invert(shader_input.mat_model).Transpose();
 
 	// 1.4 start message loop
 	MSG msg = {};
@@ -159,9 +84,10 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 		{
 			// clear buffer
 			render.clearBuffer();
+			// shader input
+			render.shader_input = shader_input;
 			// draw call
-			//render.drawCall();
-			render.drawCall(cubeMesh, vertShader, fragShader);
+			render.drawCall(cubeMesh, vert_normal, frag_normal);
 			// swap buffer
 			render.update(hWnd);
 		}
