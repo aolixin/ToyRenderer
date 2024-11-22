@@ -106,7 +106,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	constexpr float aspect = (float)WIDTH / HEIGHT;
 	constexpr float zn = 1.0f;
 	constexpr float zf = 500.0f;
-	Vec3f light_dir = {2, 0, 2};
+	Vec3f light_dir = {-1, -1, 1};
 
 	// shader definition
 	auto vert_gouraud_tex = [&](int index, ShaderContext& output) -> Vec4f

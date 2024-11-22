@@ -1293,7 +1293,7 @@ inline static Mat4x4f matrix_set_lookat(const Vec3f& eye, const Vec3f& at, const
 	return m;
 }
 
-// opengl MatrixPerspectiveFovLH
+// directx MatrixPerspectiveFovLH
 inline static Mat4x4f matrix_set_perspective(float fovy, float aspect, float zn, float zf)
 {
 	// without reverse z
@@ -1315,6 +1315,21 @@ inline static Mat4x4f matrix_set_perspective(float fovy, float aspect, float zn,
 	m.data[2][3] = 1;
 	return m;
 }
+
+
+inline static Mat4x4f matrix_set_ortho(float left, float right, float bottom, float top, float zn, float zf)
+{
+	Mat4x4f m = matrix_set_identity();
+	m.data[0][0] = 2.0f / (right - left);
+	m.data[1][1] = 2.0f / (top - bottom);
+	m.data[2][2] = 2.0f / (zf - zn);
+	m.data[3][0] = (left + right) / (left - right);
+	m.data[3][1] = (bottom + top) / (bottom - top);
+	m.data[3][2] = zn / (zn - zf);
+	return m;
+}
+
+
 
 
 // 旋转变换，围绕 (x, y, z) 矢量旋转 theta 角度

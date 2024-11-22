@@ -53,5 +53,11 @@
     <ClInclude Include="color.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="light.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="shadow.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
