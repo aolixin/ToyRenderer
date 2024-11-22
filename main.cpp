@@ -11,7 +11,6 @@
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-
 constexpr int WIDTH = 800;
 constexpr int HEIGHT = 600;
 
@@ -28,7 +27,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	wcex.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_APPLICATION));
 	wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
 	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-	wcex.lpszClassName = L"simpleSoftRender";
+	wcex.lpszClassName = L"ToyRender";
 	wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE((WORD)IDI_APPLICATION));
 	if (!RegisterClassEx(&wcex))
 	{
@@ -42,8 +41,8 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 
 	// 1.2 create window
 	HWND hWnd = CreateWindow(
-		L"simpleSoftRender",
-		L"simpleSoftRender",
+		L"ToyRender",
+		L"ToyRender",
 		WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
 		CW_USEDEFAULT, CW_USEDEFAULT,
 		WIDTH, HEIGHT,
@@ -66,20 +65,14 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	ShowWindow(hWnd, nShowCmd);
 	UpdateWindow(hWnd);
 
-	// 构建mesh
+	// build mesh
+
 	Model model("diablo3_pose.obj");
 	Mesh mesh;
 
 	int face_num = model.nfaces();
 	mesh.vertices.reserve(face_num * 3);
 	mesh.indices.reserve(face_num * 3);
-
-	// fps calculate
-	std::chrono::steady_clock::time_point frame_start;
-	std::chrono::steady_clock::time_point frame_end;
-	std::chrono::steady_clock::time_point point;
-
-	int frame_count = 0;
 
 	for (int i = 0; i < face_num; i++)
 	{
@@ -97,48 +90,77 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 		mesh.indices.push_back(i * 3 + 1);
 	}
 
-	auto vert_gouraud_tex = [&](int index, const Mesh& mesh, const ShaderInput& input, ShaderContext& output) -> Vec4f
+	// fps calculate
+	std::chrono::steady_clock::time_point frame_start;
+	std::chrono::steady_clock::time_point frame_end;
+
+	int frame_count = 0;
+
+	// shader attribute
+	Mat4x4f mat_model;
+	Mat4x4f mat_model_it;
+	Mat4x4f mat_view;
+	Mat4x4f mat_proj;
+	Mat4x4f mat_mvp;
+	constexpr float fovy = 3.1415926f * 0.5f;
+	constexpr float aspect = (float)WIDTH / HEIGHT;
+	constexpr float zn = 1.0f;
+	constexpr float zf = 500.0f;
+	Vec3f light_dir = {2, 0, 2};
+
+	// shader definition
+	auto vert_gouraud_tex = [&](int index, ShaderContext& output) -> Vec4f
 	{
-		const auto& mat_mvp = input.mat_mvp;
 		Vec4f pos = mesh.vertices[index].pos.xyz1() * mat_mvp;
-		Vec3f pos_world = (mesh.vertices[index].pos.xyz1() * input.mat_model).xyz();
-		Vec3f eye_dir = input.eye_pos - pos_world;
+		Vec3f pos_world = (mesh.vertices[index].pos.xyz1() * mat_model).xyz();
+		Vec3f eye_dir = camera.pos - pos_world;
 		output.varying_vec2f[VARYING_UV] = mesh.vertices[index].uv;
 		output.varying_vec3f[VARYING_EYE] = eye_dir;
+		return pos;
+	};
+
+	auto frag_gouraud_tex = [&](ShaderContext& input) -> Vec4f
+	{
+		Vec2f uv = input.varying_vec2f[VARYING_UV];
+
+		Vec3f eye_dir = input.varying_vec3f[VARYING_EYE];
+
+		Vec3f l = vector_normalize(light_dir);
+
+		Vec3f n = (model.normal(uv).xyz1() * mat_model_it).xyz();
+
+		float s = model.Specular(uv);
+
+		Vec3f r = vector_normalize(n * vector_dot(n, l) * 2.0f - l);
+
+		float p = Saturate(vector_dot(r, eye_dir));
+		float spec = Saturate(pow(p, s * 20) * 0.05);
+
+		float intense = Saturate(vector_dot(n, l)) + 0.2f + spec;
+		Vec4f color = model.diffuse(uv);
+		return color * intense;
+	};
+
+	auto vert_normal = [&](int index, ShaderContext& output) -> Vec4f
+	{
+		Vec4f pos = plane_mesh.vertices[index].pos.xyz1() * mat_mvp;
+		output.varying_vec2f[VARYING_TEXUV] = plane_mesh.vertices[index].uv;
+		output.varying_vec4f[VARYING_COLOR] = plane_mesh.vertices[index].color.xyz1();
+		Vec3f normal = plane_mesh.vertices[index].normal;
 
 		return pos;
 	};
 
-
-	auto frag_gouraud_tex = [&](const ShaderInput& input, ShaderContext& vert_input) -> Vec4f
+	auto frag_normal = [&](ShaderContext& vert_input) -> Vec4f
 	{
-		Vec3f light_dir = {2, 0, 2};
-		Vec2f uv = vert_input.varying_vec2f[VARYING_UV];
-		// 模型上当前点到眼睛的方向
-		Vec3f eye_dir = vert_input.varying_vec3f[VARYING_EYE];
-		// 归一化光照方向
-		Vec3f l = vector_normalize(light_dir);
-		// 法向贴图取出法向并转换为世界坐标系
-		Vec3f n = (model.normal(uv).xyz1() * input.mat_model_it).xyz();
-		// 从模型中取出当前点的高光参数
-		float s = model.Specular(uv);
-		// 计算反射光线
-		Vec3f r = vector_normalize(n * vector_dot(n, l) * 2.0f - l);
-		// 计算高光
-		float p = Saturate(vector_dot(r, eye_dir));
-		float spec = Saturate(pow(p, s * 20) * 0.05);
-		// 综合光照强度
-		float intense = Saturate(vector_dot(n, l)) + 0.2f + spec;
-		Vec4f color = model.diffuse(uv);
-		return color * intense;
+		return vert_input.varying_vec4f[VARYING_COLOR];
 	};
 
 	// renderer init
 	Render render(WIDTH, HEIGHT);
 	render.initRenderer(hWnd);
 
-
-	// 1.4 start message loop
+	// main loop
 	MSG msg = {};
 	while (msg.message != WM_QUIT)
 	{
@@ -153,16 +175,20 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 			// clear buffer
 			render.clearBuffer();
 
-			auto& shader_input_ref = render.shader_input;
+			mat_view = matrix_set_lookat(camera.pos, camera.target, camera.up);
+			mat_proj = matrix_set_perspective(fovy, aspect, zn, zf);
 
-			// sphere
-			shader_input_ref.eye_pos = camera.pos;
-			shader_input_ref.mat_model = matrix_set_identity();
-			shader_input_ref.mat_model_it = matrix_invert(shader_input_ref.mat_model).Transpose();
-			shader_input_ref.mat_view = matrix_set_lookat(camera.pos, camera.target, camera.up);
-			shader_input_ref.mat_proj = matrix_set_perspective(3.1415926f * 0.5f, (float)WIDTH / HEIGHT, 1.0, 500.0f);
-			shader_input_ref.mat_mvp = shader_input_ref.mat_model * shader_input_ref.mat_view * shader_input_ref.
-				mat_proj;
+			// draw plane
+			mat_model = matrix_set_scale(5,1,5);
+			mat_model_it = matrix_invert(mat_model).Transpose();
+			mat_mvp = mat_model * mat_view * mat_proj;
+			render.drawCall(plane_mesh, vert_normal, frag_normal);
+
+
+			// draw person
+			mat_model = matrix_set_identity();
+			mat_model_it = matrix_invert(mat_model).Transpose();
+			mat_mvp = mat_model * mat_view * mat_proj;
 			render.drawCall(mesh, vert_gouraud_tex, frag_gouraud_tex);
 
 			// swap buffer

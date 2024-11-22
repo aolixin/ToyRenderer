@@ -1,7 +1,5 @@
 #pragma once
 
-#include <algorithm>
-
 #include "geometry.h"
 
 class Camera
@@ -16,38 +14,10 @@ public:
 	{
 	}
 
-	void setPos(const Vec3f& pos)
-	{
-		this->pos = pos;
-	}
-
-	void setPerspectiveForLH(float fov, float aspect, float nearZ, float farZ)
-	{
-		_fov = fov;
-		_aspect = aspect;
-		_nearZ = nearZ;
-		_farZ = farZ;
-	}
-
-public:
-	// 世界坐标系转到投影平面
-	Mat4x4f worldToProjection;
-
 	Vec3f pos;
 	Vec3f _posTemp;
 	Vec3f target;
 	Vec3f up;
-	float _fov;
-	float _aspect;
-	float _nearZ;
-	float _farZ;
-	float _curXRand = 0.0f;
-	float _curYRand = 0.0f;
-
-	// 世界坐标系转观察坐标系
-	Mat4x4f _worldToView;
-	// 观察坐标系转投影坐标系
-	Mat4x4f _viewToProjection;
 
 	// 环绕
 	void circle(short xMove, short yMove)
@@ -61,20 +31,10 @@ public:
 		target += deltaY;
 	}
 
-	// 缩放
-	void zoom(short wParam)
-	{
-		float t = 0.9f;
-		if (wParam > 0) t = 1.1f;
-		pos.x *= t;
-		pos.y *= t;
-		pos.z *= t;
-	}
 
 	void reset()
 	{
 		pos = _posTemp;
-		_curXRand = 0.0f;
 	}
 
 	void onMouseMessage(UINT message, WPARAM wParam, LPARAM lParam)
@@ -84,7 +44,6 @@ public:
 		switch (message)
 		{
 		case WM_MOUSEWHEEL:
-			zoom(GET_WHEEL_DELTA_WPARAM(wParam));
 			break;
 		case WM_LBUTTONDOWN:
 			isPressed = true;
@@ -107,8 +66,6 @@ public:
 				reset();
 			else if (wParam == VK_F1)
 			{
-				//if (g_renderMode == RenderMode::RENDER_COLOR) g_renderMode = RenderMode::RENDER_WIREFRAME;
-				//else g_renderMode = RenderMode::RENDER_COLOR;
 			}
 			break;
 		default:
@@ -120,7 +77,7 @@ public:
 	{
 		float cameraSpeed = 0.5f;
 		Vec3f camFront = vector_normalize(target - pos);
-		
+
 		switch (wParam)
 		{
 		case 'w':

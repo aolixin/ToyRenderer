@@ -1296,15 +1296,6 @@ inline static Mat4x4f matrix_set_lookat(const Vec3f& eye, const Vec3f& at, const
 // opengl MatrixPerspectiveFovLH
 inline static Mat4x4f matrix_set_perspective(float fovy, float aspect, float zn, float zf)
 {
-	//float tanHalfFovy = tan(fovy / 2);
-	//Mat4x4f m = matrix_set_zero();
-	//m.data[0][0] = tanHalfFovy / aspect;
-	//m.data[1][1] = tanHalfFovy;
-	//m.data[2][2] = -(zn + zf) / (zf - zn);
-	//m.data[3][2] = -2.0f * zn * zf / (zf - zn);
-	//m.data[2][3] = -1;
-	//return m;
-
 	// without reverse z
 	//float tanHalfFovy = 1 / tan(fovy / 2);
 	//Mat4x4f m = matrix_set_zero();

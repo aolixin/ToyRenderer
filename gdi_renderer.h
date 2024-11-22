@@ -26,8 +26,7 @@ private:
 	std::vector<int> indices;
 
 public:
-
-	ShaderInput shader_input;
+	//ShaderInput shader_input;
 
 
 	Render(int w, int h)
@@ -148,7 +147,7 @@ void Render::drawPrimitive(const std::vector<int>& indices2draw, const Mesh& mes
 {
 	int _min_x = 0, _max_x = 0, _min_y = 0, _max_y = 0;
 
-	// 1. 顶点着色器
+	// 顶点着色器
 	for (int k = 0; k < 3; ++k)
 	{
 		int idx = indices2draw[k];
@@ -158,8 +157,7 @@ void Render::drawPrimitive(const std::vector<int>& indices2draw, const Mesh& mes
 		vert_attri.context.varying_vec3f.clear();
 		vert_attri.context.varying_vec4f.clear();
 
-		// 顶点着色器
-		vert_attri.pos = vert_shader(idx, mesh, shader_input, vert_attri.context);
+		vert_attri.pos = vert_shader(idx, vert_attri.context);
 
 		float w = Abs(vert_attri.pos.w);
 		if (w == 0.0f)return;
@@ -209,7 +207,7 @@ void Render::drawPrimitive(const std::vector<int>& indices2draw, const Mesh& mes
 	if (normal.z >= 0)return;
 
 
-	// 2. 光栅化
+	// 光栅化
 
 	const Vec2i& p0 = g_vertexAttr[0].spi;
 	const Vec2i& p1 = g_vertexAttr[1].spi;
@@ -250,11 +248,9 @@ void Render::drawPrimitive(const std::vector<int>& indices2draw, const Mesh& mes
 			// 计算当前点的 1/w，因 1/w 和屏幕空间呈线性关系，故直接重心插值
 			float rhw = g_vertexAttr[0].pos.z * a + g_vertexAttr[1].pos.z * b + g_vertexAttr[2].pos.z * c;
 
-			float tmp = g_depthBuff[cy * g_width + cx];
-
-			// 进行深度测试
+			// 深度测试
 			if (rhw < g_depthBuff[cy * g_width + cx]) continue;
-			g_depthBuff[cy * g_width + cx] = rhw; // 记录 1/w 到深度缓存
+			g_depthBuff[cy * g_width + cx] = rhw;
 
 			// 还原当前像素的 w
 			float w = 1.0f / ((rhw != 0.0f) ? rhw : 1.0f);
@@ -306,7 +302,7 @@ void Render::drawPrimitive(const std::vector<int>& indices2draw, const Mesh& mes
 			}
 
 			Vec4f color = {0.0f, 0.0f, 0.0f, 0.0f};
-			color = frag_shader(shader_input,frag_input);
+			color = frag_shader(frag_input);
 
 			auto color32 = vector_to_color(color);
 			drawPixel(cx, cy, color32);
