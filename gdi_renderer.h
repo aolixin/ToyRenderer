@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <tchar.h>
 #include <memory>
+#include <unordered_map>
+
 #include "vertex.h"
 #include "shader.h"
 #include "color.h"
@@ -16,21 +18,22 @@ private:
 
 	HDC g_tempDC = nullptr;
 	HBITMAP g_tempBm = nullptr;
-	HBITMAP g_oldBm = nullptr;
-	uint32_t* g_frameBuff = nullptr;
-	std::shared_ptr<float[]> g_depthBuff = nullptr;
+	//HBITMAP g_oldBm = nullptr;
+	int target_frame_buffer_id = -1;
+	int target_depth_buffer_id = -1;
 
 	VertexAttribute g_vertexAttr[3];
 
 	std::vector<Vertex> vertices;
 	std::vector<int> indices;
 
-	std::map<int, uint32_t*> id_frame_buffer;
-	std::map<int, std::shared_ptr<float[]>> id_depth_buffer;
+	std::unordered_map<int, uint32_t*> id_frame_buffer;
+	std::unordered_map<int, HBITMAP> id_DC;
+	std::unordered_map<int, float> id_depth_buffer;
 
 public:
 	//ShaderInput shader_input;
-
+	static int id;
 
 	Render(int w, int h)
 	{
@@ -62,11 +65,77 @@ public:
 
 	bool inline IsTopLeft(const Vec2i& a, const Vec2i& b);
 
-	uint32_t create_frame_buffer(int, int);
-	uint32_t create_depth_buffer(int, int);
+	int inline create_frame_buffer(int, int);
+	int inline create_depth_buffer(int, int);
 
+	void inline set_frame_buffer(int switch_id);
+	void inline set_depth_buffer(int id);
 };
 
+// 初始化 id
+int Render::id = 0;
+
+
+void Render::initRenderer(HWND hWnd)
+{
+	id_depth_buffer.clear();
+	id_frame_buffer.clear();
+
+	if (g_width == 0 || g_height == 0)return;
+
+	HDC hDC = GetDC(hWnd);
+	g_tempDC = CreateCompatibleDC(hDC);
+	ReleaseDC(hWnd, hDC);
+}
+
+int Render::create_frame_buffer(int w, int h)
+{
+	uint32_t* ptr = nullptr;
+	BITMAPINFO bi = {
+		{
+			sizeof(BITMAPINFOHEADER), g_width, -g_height, 1, 32, BI_RGB,
+			(DWORD)g_width * g_height * 4, 0, 0, 0, 0
+		}
+	};
+	HBITMAP bt = CreateDIBSection(g_tempDC, &bi, DIB_RGB_COLORS, (void**)&ptr, 0, 0);
+
+	id_frame_buffer[id] = ptr;
+	id_DC[id] = bt;
+	id++;
+	return id - 1;
+}
+
+int Render::create_depth_buffer(int w, int h)
+{
+	int* a = new int[10];
+
+	float* depth_ptr = new float[w * h];
+	id_depth_buffer[id] = depth_ptr;
+	id++;
+	return id - 1;
+}
+
+void Render::set_frame_buffer(int switch_id)
+{
+	if (this->target_frame_buffer_id == switch_id)return;
+	this->target_frame_buffer_id = switch_id;
+	SelectObject(g_tempDC, id_DC[this->target_frame_buffer_id]);
+}
+
+void Render::set_depth_buffer(int switch_id)
+{
+	this->target_depth_buffer_id = switch_id;
+}
+
+
+void Render::drawPixel(int x, int y, uint32_t color)
+{
+	auto& g_frameBuff = id_frame_buffer[this->target_frame_buffer_id];
+	if (x < 0 || x >= g_width || y < 0 || y >= g_height) return;
+
+	int idx = y * g_width + x;
+	g_frameBuff[idx] = color;
+}
 
 // 交换缓冲区
 void Render::update(HWND hWnd)
@@ -79,6 +148,8 @@ void Render::update(HWND hWnd)
 
 void Render::clearBuffer()
 {
+	auto& g_frameBuff = id_frame_buffer[this->target_frame_buffer_id];
+	auto& g_depthBuff = id_depth_buffer[this->target_depth_buffer_id];
 	for (int row = 0; row < g_height; ++row)
 	{
 		for (int col = 0; col < g_width; ++col)
@@ -94,13 +165,9 @@ void Render::clearBuffer()
 
 void Render::shutDown()
 {
+	// 释放资源
 	if (g_tempDC)
 	{
-		if (g_oldBm)
-		{
-			SelectObject(g_tempDC, g_oldBm);
-			g_oldBm = nullptr;
-		}
 		DeleteDC(g_tempDC);
 		g_tempDC = nullptr;
 	}
@@ -110,6 +177,19 @@ void Render::shutDown()
 		DeleteObject(g_tempBm);
 		g_tempBm = nullptr;
 	}
+
+	for (auto& it : id_frame_buffer)
+	{
+		DeleteObject(it.second);
+	}
+
+	for (auto& it : id_depth_buffer)
+	{
+		delete[] it.second;
+	}
+
+	id_frame_buffer.clear();
+	id_depth_buffer.clear();
 }
 
 void Render::drawCall(const Mesh& mesh, const VertexShader& vert, const FragmentShader& frag)
@@ -131,6 +211,9 @@ void Render::drawPrimitive(const std::vector<int>& indices2draw, const Mesh& mes
                            const FragmentShader& frag_shader)
 {
 	int _min_x = 0, _max_x = 0, _min_y = 0, _max_y = 0;
+
+	auto& g_frameBuff = id_frame_buffer[this->target_frame_buffer_id];
+	auto& g_depthBuff = id_depth_buffer[this->target_depth_buffer_id];
 
 	// 顶点着色器
 	for (int k = 0; k < 3; ++k)
@@ -564,12 +647,4 @@ void Render::drawLineBresenham(int x1, int y1, int x2, int y2, uint32_t color)
 			drawPixel(x2, y2, color);
 		}
 	}
-}
-
-void Render::drawPixel(int x, int y, uint32_t color)
-{
-	if (x < 0 || x >= g_width || y < 0 || y >= g_height) return;
-
-	int idx = y * g_width + x;
-	g_frameBuff[idx] = color;
 }
