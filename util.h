@@ -63,3 +63,12 @@ Mesh createSphere(float radius, int slices, int stacks)
 
 	return Mesh(vertices, indices);
 }
+
+
+void show_str(const HWND& hWnd, const std::string& fps_str, int x, int y)
+{
+	HDC hdc = GetDC(hWnd);
+	SetTextColor(hdc, RGB(255, 0, 0));
+	TextOutA(hdc, x, y, fps_str.c_str(), fps_str.length());
+	ReleaseDC(hWnd, hdc);
+}

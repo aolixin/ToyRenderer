@@ -143,15 +143,6 @@ void Render::drawCall(const Mesh& mesh, const VertexShader& vert, const Fragment
 	}
 }
 
-void Render::drawCube(Mesh& mesh, const VertexShader& vert, const FragmentShader& frag)
-{
-}
-
-
-void Render::drawPlane(int lt, int rt, int rb, int lb)
-{
-}
-
 void Render::drawPrimitive(const std::vector<int>& indices2draw, const Mesh& mesh, const VertexShader& vert_shader,
                            const FragmentShader& frag_shader)
 {
@@ -408,11 +399,4 @@ void Render::drawPixel(int x, int y, uint32_t color)
 
 	int idx = y * g_width + x;
 	g_frameBuff[idx] = color;
-}
-
-
-// 判断一条边是不是三角形的左上边 (Top-Left Edge)
-bool Render::IsTopLeft(const Vec2i& a, const Vec2i& b)
-{
-	return ((a.y == b.y) && (a.x < b.x)) || (a.y > b.y);
 }

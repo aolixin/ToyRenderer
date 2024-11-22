@@ -52,45 +52,13 @@ public:
 	// 环绕
 	void circle(short xMove, short yMove)
 	{
-		// 鼠标移动像素与弧度的比例固定
-		float circleLen = 100.f;
+		Vec3f front = vector_normalize(target - pos);
+		Vec3f right = vector_normalize(vector_cross(front, up));
+		Vec3f deltaX = right * (float)xMove * 0.01f;
+		target -= deltaX;
 
-		// 1 计算绕y轴的旋转
-		float radY = xMove / circleLen;
-		Mat4x4f mScaleY = {
-			(float)cos(radY), 0.0f, -(float)sin(radY), 0.0f,
-			0.0f, 1.0f, 0.0f, 0.0f,
-			(float)sin(radY), 0.0f, (float)cos(radY), 0.0f,
-			0.0f, 0.0f, 0.0f, 1.0f
-		};
-
-		// 2 计算绕x轴 这里需要设定一个最大角度
-		float radX = yMove / circleLen;
-		float maxRad = 3.1415926f * 0.6f;
-		_curXRand += radX;
-		if (_curXRand < -maxRad)
-		{
-			_curXRand = -maxRad;
-			radX = 0.0f;
-		}
-		if (_curXRand > maxRad)
-		{
-			_curXRand = maxRad;
-			radX = 0.0f;
-		}
-
-		Mat4x4f mScaleX = {
-			1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, (float)cos(radX), (float)sin(radX), 0.0f,
-			0.0f, -(float)sin(radX), (float)cos(radX), 0.0f,
-			0.0f, 0.0f, 0.0f, 1.0f
-		};
-
-
-		auto tmp = pos.xyz1() * mScaleX;
-		pos = tmp.xyz();
-		tmp = pos.xyz1() * mScaleY;
-		pos = tmp.xyz();
+		Vec3f deltaY = up * (float)yMove * 0.01f;
+		target += deltaY;
 	}
 
 	// 缩放
@@ -150,7 +118,7 @@ public:
 
 	void onCameraMove(WPARAM wParam)
 	{
-		float cameraSpeed = 0.1f;
+		float cameraSpeed = 0.5f;
 		Vec3f camFront = vector_normalize(target - pos);
 		
 		switch (wParam)
@@ -158,18 +126,22 @@ public:
 		case 'w':
 		case 'W':
 			pos += cameraSpeed * camFront;
+			target += cameraSpeed * camFront;
 			break;
 		case 's':
 		case 'S':
 			pos -= cameraSpeed * camFront;
+			target -= cameraSpeed * camFront;
 			break;
 		case 'a':
 		case 'A':
 			pos += vector_cross(camFront, up) * cameraSpeed;
+			target += vector_cross(camFront, up) * cameraSpeed;
 			break;
 		case 'd':
 		case 'D':
 			pos -= vector_cross(camFront, up) * cameraSpeed;
+			target -= vector_cross(camFront, up) * cameraSpeed;
 			break;
 
 		default:

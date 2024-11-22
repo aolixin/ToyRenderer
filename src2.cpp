@@ -5,6 +5,7 @@
 #include "shader_instance.h"
 #include "util.h"
 #include "camera.h"
+#include <chrono>
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
@@ -12,7 +13,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 constexpr int WIDTH = 800;
 constexpr int HEIGHT = 600;
 
-Camera camera({ 0, 0, -3 }, { 0, 0, 0 }, { 0, 1, 0 });
+Camera camera({0, 0, -3}, {0, 0, 0}, {0, 1, 0});
 
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
                    _In_ LPSTR lpCmdLine, _In_ int nShowCmd)
@@ -25,7 +26,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	wcex.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_APPLICATION));
 	wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
 	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-	wcex.lpszClassName = L"simpleSoftRender";
+	wcex.lpszClassName = L"toyRender";
 	wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE((WORD)IDI_APPLICATION));
 	if (!RegisterClassEx(&wcex))
 	{
@@ -37,10 +38,10 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 		return 1;
 	}
 
-	// 1.2 create window
+	// create window
 	HWND hWnd = CreateWindow(
-		L"simpleSoftRender",
-		L"simpleSoftRender",
+		L"toyRender",
+		L"toyRender",
 		WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
 		CW_USEDEFAULT, CW_USEDEFAULT,
 		WIDTH, HEIGHT,
@@ -63,10 +64,10 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	ShowWindow(hWnd, nShowCmd);
 	UpdateWindow(hWnd);
 
+	// build mesh
 	float radius = 1.0f;
 	int slices = 36;
 	int stacks = 18;
-
 	Mesh sphere_mesh = createSphere(radius, slices, stacks);
 
 
@@ -74,12 +75,14 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	Render render(WIDTH, HEIGHT);
 	render.initRenderer(hWnd);
 
-	//ShaderInput shader_input;
+	// fps calculate
+	std::chrono::steady_clock::time_point frame_start;
+	std::chrono::steady_clock::time_point frame_end;
+	std::chrono::steady_clock::time_point point;
 
-	// shader input
-	//render.shader_input = shader_input;
+	int frame_count = 0;
 
-	// 1.4 start message loop
+	// main loop
 	MSG msg = {};
 	while (msg.message != WM_QUIT)
 	{
@@ -90,43 +93,85 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 		}
 		else
 		{
+			frame_start = std::chrono::steady_clock::now();
+			point = frame_start;
+
 			// clear buffer
 			render.clearBuffer();
 
 			auto& shader_input_ref = render.shader_input;
 
-			// sphere
+			shader_input_ref.mat_view = matrix_set_lookat(camera.pos, camera.target, camera.up);
+			shader_input_ref.mat_proj = matrix_set_perspective(3.1415926f * 0.5f, (float)WIDTH / HEIGHT, 1.0, 500.0f);
+
+
+			//// sphere
 			//shader_input_ref.mat_model = matrix_set_identity();
 			//shader_input_ref.mat_model_it = matrix_invert(shader_input_ref.mat_model).Transpose();
-			//shader_input_ref.mat_view = matrix_set_lookat(camera.pos, camera.target, camera.up);
-			//shader_input_ref.mat_proj = matrix_set_perspective(3.1415926f * 0.5f, (float)WIDTH / HEIGHT, 1.0, 500.0f);
 			//shader_input_ref.mat_mvp = shader_input_ref.mat_model * shader_input_ref.mat_view * shader_input_ref.mat_proj;
 			//render.drawCall(sphere_mesh, vert_gouraud, frag_gouraud);
 
-			// cube
-			shader_input_ref.mat_model = matrix_set_translate(0,0,5);
-			shader_input_ref.mat_model_it = matrix_invert(shader_input_ref.mat_model).Transpose();
-			shader_input_ref.mat_view = matrix_set_lookat(camera.pos, camera.target, camera.up);
-			shader_input_ref.mat_proj = matrix_set_perspective(3.1415926f * 0.5f, (float)WIDTH / HEIGHT, 1.0, 500.0f);
-			shader_input_ref.mat_mvp = shader_input_ref.mat_model * shader_input_ref.mat_view * shader_input_ref.mat_proj;
-			render.drawCall(cube_mesh, vert_normal, frag_normal);
+			//// cube
+			//shader_input_ref.mat_model = matrix_set_translate(-4,0,5);
+			//shader_input_ref.mat_model_it = matrix_invert(shader_input_ref.mat_model).Transpose();
+			//shader_input_ref.mat_mvp = shader_input_ref.mat_model * shader_input_ref.mat_view * shader_input_ref.mat_proj;
+			//render.drawCall(cube_mesh, vert_normal, frag_normal);
 
 			// cube
-			shader_input_ref.mat_model = matrix_set_translate(0, 0, 9);
+			shader_input_ref.mat_model = matrix_set_translate(0, 0, 5);
 			shader_input_ref.mat_model_it = matrix_invert(shader_input_ref.mat_model).Transpose();
-			shader_input_ref.mat_view = matrix_set_lookat(camera.pos, camera.target, camera.up);
-			shader_input_ref.mat_proj = matrix_set_perspective(3.1415926f * 0.5f, (float)WIDTH / HEIGHT, 1.0, 500.0f);
-			shader_input_ref.mat_mvp = shader_input_ref.mat_model * shader_input_ref.mat_view * shader_input_ref.mat_proj;
+			shader_input_ref.mat_mvp = shader_input_ref.mat_model * shader_input_ref.mat_view * shader_input_ref.
+				mat_proj;
+
+			frame_end = std::chrono::steady_clock::now();
+			std::chrono::duration<double, std::milli> cal_mat_duration = frame_end - point;
+			point = frame_end;
+			std::string cal_mat_duration_str = "cal_mat_duration = " + std::to_string(static_cast<int>(cal_mat_duration.count()));
+
+
+			// cube drawCall
 			render.drawCall(cube_mesh, vert_normal, frag_normal);
+
+			frame_end = std::chrono::steady_clock::now();
+			std::chrono::duration<double, std::milli> dc_duration = frame_end - point;
+			point = frame_end;
+			std::string cal_dc_duration_str = "cal_drawCall_duration = " + std::to_string(static_cast<int>(dc_duration.count()));
 
 			// swap buffer
 			render.update(hWnd);
+
+			frame_end = std::chrono::steady_clock::now();
+			std::chrono::duration<double, std::milli> swap_buffer_duration = frame_end - point;
+			point = frame_end;
+			std::string swap_buffer_duration_str = "swap_buffer_duration = " + std::to_string(static_cast<int>(swap_buffer_duration.count()));
+
+			// show fps
+			frame_end = std::chrono::steady_clock::now();
+			std::chrono::duration<double> duration = frame_end - frame_start;
+			double fps = 1.0 / duration.count();
+			std::string fps_str = "FPS: " + std::to_string(static_cast<int>(fps));
+
+			show_str(hWnd, cal_mat_duration_str, 50, 20);
+			show_str(hWnd, cal_dc_duration_str, 50, 50);
+			show_str(hWnd, swap_buffer_duration_str, 300, 20);
+			show_str(hWnd, fps_str, WIDTH - 100, 20);
+
+			//Vec3f p = camera.pos;
+			//Vec3f at = camera.target;
+			//std::string cam_pos = "camera pos: (" + std::to_string(p.x) + ", " + std::to_string(p.y) + ", " + std::to_string(p.z) + ")";
+			//std::string cam_at_msg = "camera at: (" + std::to_string(at.x) + ", " + std::to_string(at.y) + ", " + std::to_string(at.z) + ")";
+
+			//show_str(hWnd, cam_pos, 300, 50);
+			//show_str(hWnd, cam_at_msg, 300, 70);
+
+			frame_count++;
 		}
 	}
 
 	render.shutDown();
 	return static_cast<int>(msg.wParam);
 }
+
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -137,7 +182,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_LBUTTONUP:
 	case WM_MOUSEMOVE:
 	case WM_KEYDOWN:
-		//camera.onMouseMessage(message, wParam, lParam);
+		camera.onMouseMessage(message, wParam, lParam);
 		break;
 	case WM_DESTROY:
 		PostQuitMessage(0);
@@ -152,5 +197,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	return 0;
 }
+
 
 #endif
