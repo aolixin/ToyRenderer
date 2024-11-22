@@ -21,6 +21,9 @@
     <ClCompile Include="src2.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="src3.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="geometry.h">
@@ -48,6 +51,12 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="util.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="model.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="color.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

@@ -129,13 +129,16 @@
   <ItemGroup>
     <ClCompile Include="src1.cpp" />
     <ClCompile Include="src2.cpp" />
+    <ClCompile Include="src3.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="bitmap.h" />
     <ClInclude Include="bitmap_renderer.h" />
     <ClInclude Include="camera.h" />
+    <ClInclude Include="color.h" />
     <ClInclude Include="gdi_renderer.h" />
     <ClInclude Include="geometry.h" />
+    <ClInclude Include="model.h" />
     <ClInclude Include="shader.h" />
     <ClInclude Include="shader_instance.h" />
     <ClInclude Include="util.h" />

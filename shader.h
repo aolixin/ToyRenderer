@@ -16,6 +16,7 @@ struct ShaderInput
 {
 	Vec3f light_dir = {2, 0, 2};
 	Vec3f light_color = {0.8, 0.2f, 0.2f};
+	Vec3f eye_pos;
 
 	Mat4x4f mat_model;
 	Mat4x4f mat_view;
@@ -23,6 +24,8 @@ struct ShaderInput
 	Mat4x4f mat_mvp;
 
 	Mat4x4f mat_model_it;
+
+
 };
 
 struct VertexAttribute
@@ -38,4 +41,4 @@ struct VertexAttribute
 typedef std::function<Vec4f(int index, const Mesh& mesh, const ShaderInput& input, ShaderContext& output)> VertexShader;
 
 
-typedef std::function<Vec4f(ShaderContext& input)> FragmentShader;
+typedef std::function<Vec4f(const ShaderInput& input, ShaderContext& vert_input)> FragmentShader;

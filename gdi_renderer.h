@@ -6,6 +6,7 @@
 #include <memory>
 #include "vertex.h"
 #include "shader.h"
+#include "color.h"
 
 class Render
 {
@@ -25,7 +26,6 @@ private:
 	std::vector<int> indices;
 
 public:
-	static uint32_t bgColor;
 
 	ShaderInput shader_input;
 
@@ -58,8 +58,6 @@ public:
 
 	bool inline IsTopLeft(const Vec2i& a, const Vec2i& b);
 };
-
-uint32_t Render::bgColor = ((123 << 16) | (195 << 8) | 221);
 
 void Render::initRenderer(HWND hWnd)
 {
@@ -239,7 +237,7 @@ void Render::drawPrimitive(const std::vector<int>& indices2draw, const Mesh& mes
 			int res01 = (p0.x - cx) * (p1.y - cy) - (p1.x - cx) * (p0.y - cy);
 			int res12 = (p1.x - cx) * (p2.y - cy) - (p2.x - cx) * (p1.y - cy);
 			int res20 = (p2.x - cx) * (p0.y - cy) - (p0.x - cx) * (p2.y - cy);
-			if (res01 >= 0 || res12 >= 0 || res20 >= 0)continue;
+			if (res01 > 0 || res12 > 0 || res20 > 0)continue;
 
 			Vec2f cxy = {(float)cx + 0.5f, (float)cy + 0.5f};
 
@@ -317,7 +315,7 @@ void Render::drawPrimitive(const std::vector<int>& indices2draw, const Mesh& mes
 			}
 
 			Vec4f color = {0.0f, 0.0f, 0.0f, 0.0f};
-			color = frag_shader(frag_input);
+			color = frag_shader(shader_input,frag_input);
 
 			auto color32 = vector_to_color(color);
 			drawPixel(cx, cy, color32);
@@ -325,12 +323,12 @@ void Render::drawPrimitive(const std::vector<int>& indices2draw, const Mesh& mes
 	}
 
 	// 3. »æÖÆÈý½ÇÐÎ±ß¿ò
-	drawLineBresenham(g_vertexAttr[0].spi.x, g_vertexAttr[0].spi.y, g_vertexAttr[1].spi.x, g_vertexAttr[1].spi.y,
-	                  0x000000);
-	drawLineBresenham(g_vertexAttr[1].spi.x, g_vertexAttr[1].spi.y, g_vertexAttr[2].spi.x, g_vertexAttr[2].spi.y,
-	                  0x000000);
-	drawLineBresenham(g_vertexAttr[2].spi.x, g_vertexAttr[2].spi.y, g_vertexAttr[0].spi.x, g_vertexAttr[0].spi.y,
-	                  0x000000);
+	//drawLineBresenham(g_vertexAttr[0].spi.x, g_vertexAttr[0].spi.y, g_vertexAttr[1].spi.x, g_vertexAttr[1].spi.y,
+	//                  0x000000);
+	//drawLineBresenham(g_vertexAttr[1].spi.x, g_vertexAttr[1].spi.y, g_vertexAttr[2].spi.x, g_vertexAttr[2].spi.y,
+	//                  0x000000);
+	//drawLineBresenham(g_vertexAttr[2].spi.x, g_vertexAttr[2].spi.y, g_vertexAttr[0].spi.x, g_vertexAttr[0].spi.y,
+	//                  0x000000);
 }
 
 void Render::drawLineDDA(int x1, int y1, int x2, int y2, uint32_t color)

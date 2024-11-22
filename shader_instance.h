@@ -1,16 +1,17 @@
 #pragma once
 
 #include "shader.h"
+#include "color.h"
 
 // 定义属性和 varying 中的纹理坐标 key
 constexpr int VARYING_TEXUV = 0;
 constexpr int VARYING_COLOR = 1;
 constexpr int VARYING_LIGHT = 2;
 
-const Vec3f red_color = {1.0f, 0.0f, 0.0f};
-const Vec3f green_color = {0.0f, 1.0f, 0.0f};
-const Vec3f blue_color = {0.0f, 0.0f, 1.0f};
-const Vec3f white_color = {1.0f, 1.0f, 1.0f};
+const int VARYING_UV = 3;
+const int VARYING_EYE = 4; // 眼睛相对顶点的位置
+
+
 
 Mesh cube_mesh({
 	{
@@ -44,9 +45,9 @@ auto vert_normal = [&](int index, const Mesh& mesh, const ShaderInput& input, Sh
 	return pos;
 };
 
-auto frag_normal = [&](ShaderContext& input) -> Vec4f
+auto frag_normal = [&](const ShaderInput& input, ShaderContext& vert_input) -> Vec4f
 {
-	return input.varying_vec4f[VARYING_COLOR];
+	return vert_input.varying_vec4f[VARYING_COLOR];
 };
 
 
@@ -69,10 +70,13 @@ auto vert_gouraud = [&](int index, const Mesh& mesh, const ShaderInput& input, S
 };
 
 
-auto frag_gouraud = [&](ShaderContext& input) -> Vec4f
+auto frag_gouraud = [&](const ShaderInput& input, ShaderContext& vert_input) -> Vec4f
 {
-	auto& color = input.varying_vec4f[VARYING_COLOR];
-	auto& light = input.varying_float[VARYING_LIGHT];
+	auto& color = vert_input.varying_vec4f[VARYING_COLOR];
+	auto& light = vert_input.varying_float[VARYING_LIGHT];
 
 	return color * light;
 };
+
+
+
