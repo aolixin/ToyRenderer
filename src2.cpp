@@ -1,4 +1,4 @@
-#if 1
+#if 0
 #include <windows.h>
 #include "gdi_renderer.h"
 #include "geometry.h"
@@ -135,7 +135,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 			frame_end = std::chrono::steady_clock::now();
 			std::chrono::duration<double, std::milli> dc_duration = frame_end - point;
 			point = frame_end;
-			std::string cal_dc_duration_str = "cal_drawCall_duration = " + std::to_string(static_cast<int>(dc_duration.count()));
+			std::string cal_dc_duration_str = "drawCall_duration = " + std::to_string(static_cast<int>(dc_duration.count()));
 
 			// swap buffer
 			render.update(hWnd);

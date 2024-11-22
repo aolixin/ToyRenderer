@@ -1,5 +1,6 @@
-#if 0
+#if 1
 #include <windows.h>
+#include <chrono>
 #include "gdi_renderer.h"
 #include "geometry.h"
 #include "shader_instance.h"
@@ -7,11 +8,12 @@
 #include "camera.h"
 #include "model.h"
 
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 
-constexpr int WIDTH = 1920;
-constexpr int HEIGHT = 1080;
+constexpr int WIDTH = 800;
+constexpr int HEIGHT = 600;
 
 Camera camera({0, 0, 3}, {0, 0, 0}, {0, 1, 0});
 
@@ -72,9 +74,15 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	mesh.vertices.reserve(face_num * 3);
 	mesh.indices.reserve(face_num * 3);
 
+	// fps calculate
+	std::chrono::steady_clock::time_point frame_start;
+	std::chrono::steady_clock::time_point frame_end;
+	std::chrono::steady_clock::time_point point;
+
+	int frame_count = 0;
+
 	for (int i = 0; i < face_num; i++)
 	{
-		// 设置三个顶点的输入，供 VS 读取
 		for (int j = 0; j < 3; j++)
 		{
 			Vertex v;
@@ -94,7 +102,6 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 		const auto& mat_mvp = input.mat_mvp;
 		Vec4f pos = mesh.vertices[index].pos.xyz1() * mat_mvp;
 		Vec3f pos_world = (mesh.vertices[index].pos.xyz1() * input.mat_model).xyz();
-		// 计算模型顶点到眼睛的方向
 		Vec3f eye_dir = input.eye_pos - pos_world;
 		output.varying_vec2f[VARYING_UV] = mesh.vertices[index].uv;
 		output.varying_vec3f[VARYING_EYE] = eye_dir;
@@ -142,6 +149,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 		}
 		else
 		{
+			frame_start = std::chrono::steady_clock::now();
 			// clear buffer
 			render.clearBuffer();
 
@@ -157,9 +165,15 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 				mat_proj;
 			render.drawCall(mesh, vert_gouraud_tex, frag_gouraud_tex);
 
-
 			// swap buffer
 			render.update(hWnd);
+
+			// show fps
+			frame_end = std::chrono::steady_clock::now();
+			std::chrono::duration<double> duration = frame_end - frame_start;
+			double fps = 1.0 / duration.count();
+			std::string fps_str = "FPS: " + std::to_string(static_cast<int>(fps));
+			show_str(hWnd, fps_str, WIDTH - 100, 20);
 		}
 	}
 
@@ -176,7 +190,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_LBUTTONUP:
 	case WM_MOUSEMOVE:
 	case WM_KEYDOWN:
-		//camera.onMouseMessage(message, wParam, lParam);
+		camera.onMouseMessage(message, wParam, lParam);
 		break;
 	case WM_DESTROY:
 		PostQuitMessage(0);
