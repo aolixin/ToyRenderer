@@ -29,7 +29,7 @@ private:
 	std::vector<int> indices;
 
 	std::unordered_map<int, uint32_t*> id_frame_buffer;
-	std::unordered_map<int, uint32_t**> id_msaa_frame_buffer;
+	std::unordered_map<int, Vec4f**> id_msaa_frame_buffer;
 
 	std::unordered_map<int, HBITMAP> id_DC;
 
@@ -136,10 +136,10 @@ int Render::create_frame_buffer(int w, int h)
 		HBITMAP bt = CreateDIBSection(g_tempDC, &bi, DIB_RGB_COLORS, (void**)&ptr, 0, 0);
 
 		// msaa buffer
-		uint32_t** msaa_ptr = new uint32_t*[w * h];
+		Vec4f** msaa_ptr = new Vec4f*[w * h];
 		for (size_t i = 0; i < w * h; i++)
 		{
-			msaa_ptr[i] = new uint32_t[MULTISAPLE];
+			msaa_ptr[i] = new Vec4f[MULTISAPLE];
 		}
 		// coverage mask
 		bool** mask = new bool*[w * h];
@@ -222,7 +222,7 @@ void Render::ResolvePixel()
 
 			for (int i = 0; i < MULTISAPLE; i++)
 			{
-				color += vector_from_color(g_msaa_frame[idx][i]);
+				color += g_msaa_frame[idx][i];
 			}
 			g_frameBuff[idx] = vector_to_color(color * 0.25f);
 		}
@@ -259,7 +259,7 @@ void Render::clearBuffer()
 			{
 				for (int i = 0; i < MULTISAPLE; i++)
 				{
-					g_msaa_frameBuff[idx][i] = bgColor;
+					g_msaa_frameBuff[idx][i] = vector_from_color(bgColor);
 					g_msaa_depthBuff[idx][i] = 0.0f;
 					g_coverage_mask[idx][i] = false;
 				}
@@ -530,7 +530,7 @@ void Render::drawPrimitive(const std::vector<int>& indices2draw, const Mesh& mes
 				{
 					if (target_coverage_mask[cy * g_width + cx][i] /*&& rhw > target_msaa_depth[cy * g_width + cx][i]*/)
 					{
-						target_msaa_frame[cy * g_width + cx][i] = color32;
+						target_msaa_frame[cy * g_width + cx][i] = color;
 					}
 				}
 			}
