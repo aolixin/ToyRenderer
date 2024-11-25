@@ -29,7 +29,7 @@ private:
 
 	std::unordered_map<int, uint32_t*> id_frame_buffer;
 	std::unordered_map<int, HBITMAP> id_DC;
-	std::unordered_map<int, float> id_depth_buffer;
+	std::unordered_map<int, float*> id_depth_buffer;
 
 public:
 	//ShaderInput shader_input;
@@ -107,10 +107,8 @@ int Render::create_frame_buffer(int w, int h)
 
 int Render::create_depth_buffer(int w, int h)
 {
-	int* a = new int[10];
-
 	float* depth_ptr = new float[w * h];
-	id_depth_buffer[id] = depth_ptr;
+	id_depth_buffer[Render::id] = depth_ptr;
 	id++;
 	return id - 1;
 }
@@ -476,6 +474,9 @@ void Render::drawPrimitive_ortho(const std::vector<int>& indices2draw, const Mes
 	const Vec2f& f0 = g_vertexAttr[0].spf;
 	const Vec2f& f1 = g_vertexAttr[1].spf;
 	const Vec2f& f2 = g_vertexAttr[2].spf;
+
+	auto& g_frameBuff = id_frame_buffer[this->target_frame_buffer_id];
+	auto& g_depthBuff = id_depth_buffer[this->target_depth_buffer_id];
 
 	for (int cy = _min_y; cy <= _max_y; cy++)
 	{

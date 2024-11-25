@@ -160,6 +160,13 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	Render render(WIDTH, HEIGHT);
 	render.initRenderer(hWnd);
 
+	// create frame buffer
+	int frame_buffer_id = render.create_frame_buffer(WIDTH,HEIGHT);
+	int depth_buffer_id = render.create_depth_buffer(WIDTH,HEIGHT);
+
+	render.set_frame_buffer(frame_buffer_id);
+	render.set_depth_buffer(depth_buffer_id);
+
 	// main loop
 	MSG msg = {};
 	while (msg.message != WM_QUIT)
@@ -179,10 +186,10 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 			mat_proj = matrix_set_perspective(fovy, aspect, zn, zf);
 
 			// draw plane
-			mat_model = matrix_set_scale(5,1,5);
-			mat_model_it = matrix_invert(mat_model).Transpose();
-			mat_mvp = mat_model * mat_view * mat_proj;
-			render.drawCall(plane_mesh, vert_normal, frag_normal);
+			//mat_model = matrix_set_scale(5,1,5);
+			//mat_model_it = matrix_invert(mat_model).Transpose();
+			//mat_mvp = mat_model * mat_view * mat_proj;
+			//render.drawCall(plane_mesh, vert_normal, frag_normal);
 
 
 			// draw person
