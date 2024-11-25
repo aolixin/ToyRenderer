@@ -127,7 +127,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp" />
+    <ClCompile Include="main_nomsaa.cpp" />
+    <ClCompile Include="main_msaa.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="bitmap.h" />
@@ -138,6 +139,7 @@
     <ClInclude Include="geometry.h" />
     <ClInclude Include="light.h" />
     <ClInclude Include="model.h" />
+    <ClInclude Include="msaa.h" />
     <ClInclude Include="shader.h" />
     <ClInclude Include="shader_instance.h" />
     <ClInclude Include="shadow.h" />

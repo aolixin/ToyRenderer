@@ -9,6 +9,7 @@
 #include "vertex.h"
 #include "shader.h"
 #include "color.h"
+#include "msaa.h"
 
 class Render
 {
@@ -28,8 +29,16 @@ private:
 	std::vector<int> indices;
 
 	std::unordered_map<int, uint32_t*> id_frame_buffer;
+	std::unordered_map<int, uint32_t**> id_msaa_frame_buffer;
+
 	std::unordered_map<int, HBITMAP> id_DC;
+
 	std::unordered_map<int, float*> id_depth_buffer;
+	std::unordered_map<int, float**> id_msaa_depth_buffer;
+
+	std::unordered_map<int, bool**> id_coverage_mask;
+
+	bool _msaa_enable = false;
 
 public:
 	//ShaderInput shader_input;
@@ -41,11 +50,8 @@ public:
 		g_height = h;
 	}
 
-	// 初始化渲染器 屏幕长宽 屏幕缓冲
 	void inline initRenderer(HWND hWnd);
-	// 每帧绘制
 	void inline update(HWND hWnd);
-	// 清理屏幕缓冲
 	void inline clearBuffer();
 	void inline shutDown();
 
@@ -62,14 +68,17 @@ public:
 
 
 	void inline drawPixel(int x, int y, uint32_t color);
-
-	bool inline IsTopLeft(const Vec2i& a, const Vec2i& b);
+	void inline ResolvePixel();
 
 	int inline create_frame_buffer(int, int);
 	int inline create_depth_buffer(int, int);
 
 	void inline set_frame_buffer(int switch_id);
 	void inline set_depth_buffer(int id);
+
+	void inline msaa_enable(bool enable);
+
+	bool inline inTriangle(const Vec2f&, const Vec2f&, const Vec2f&, const float&, const float&);
 };
 
 // 初始化 id
@@ -80,6 +89,9 @@ void Render::initRenderer(HWND hWnd)
 {
 	id_depth_buffer.clear();
 	id_frame_buffer.clear();
+	id_msaa_frame_buffer.clear();
+	id_coverage_mask.clear();
+
 
 	if (g_width == 0 || g_height == 0)return;
 
@@ -88,29 +100,90 @@ void Render::initRenderer(HWND hWnd)
 	ReleaseDC(hWnd, hDC);
 }
 
+void Render::msaa_enable(bool enable = false)
+{
+	this->_msaa_enable = enable;
+}
+
 int Render::create_frame_buffer(int w, int h)
 {
-	uint32_t* ptr = nullptr;
-	BITMAPINFO bi = {
-		{
-			sizeof(BITMAPINFOHEADER), g_width, -g_height, 1, 32, BI_RGB,
-			(DWORD)g_width * g_height * 4, 0, 0, 0, 0
-		}
-	};
-	HBITMAP bt = CreateDIBSection(g_tempDC, &bi, DIB_RGB_COLORS, (void**)&ptr, 0, 0);
+	if (!_msaa_enable)
+	{
+		uint32_t* ptr = nullptr;
+		BITMAPINFO bi = {
+			{
+				sizeof(BITMAPINFOHEADER), g_width, -g_height, 1, 32, BI_RGB,
+				(DWORD)g_width * g_height * 4, 0, 0, 0, 0
+			}
+		};
+		HBITMAP bt = CreateDIBSection(g_tempDC, &bi, DIB_RGB_COLORS, (void**)&ptr, 0, 0);
 
-	id_frame_buffer[id] = ptr;
-	id_DC[id] = bt;
-	id++;
-	return id - 1;
+		id_frame_buffer[id] = ptr;
+		id_DC[id] = bt;
+		id++;
+		return id - 1;
+	}
+	else
+	{
+		// build buffer
+		uint32_t* ptr = nullptr;
+		BITMAPINFO bi = {
+			{
+				sizeof(BITMAPINFOHEADER), g_width, -g_height, 1, 32, BI_RGB,
+				(DWORD)g_width * g_height * 4, 0, 0, 0, 0
+			}
+		};
+		HBITMAP bt = CreateDIBSection(g_tempDC, &bi, DIB_RGB_COLORS, (void**)&ptr, 0, 0);
+
+		// msaa buffer
+		uint32_t** msaa_ptr = new uint32_t*[w * h];
+		for (size_t i = 0; i < w * h; i++)
+		{
+			msaa_ptr[i] = new uint32_t[MULTISAPLE];
+		}
+		// coverage mask
+		bool** mask = new bool*[w * h];
+		for (size_t i = 0; i < w * h; i++)
+		{
+			mask[i] = new bool[MULTISAPLE];
+		}
+
+		// store buffer id
+		id_frame_buffer[id] = ptr;
+		id_DC[id] = bt;
+		id_msaa_frame_buffer[id] = msaa_ptr;
+		id_coverage_mask[id] = mask;
+
+		id++;
+		return id - 1;
+	}
 }
 
 int Render::create_depth_buffer(int w, int h)
 {
-	float* depth_ptr = new float[w * h];
-	id_depth_buffer[Render::id] = depth_ptr;
-	id++;
-	return id - 1;
+	if (!_msaa_enable)
+	{
+		float* depth_ptr = new float[w * h];
+		id_depth_buffer[id] = depth_ptr;
+		id++;
+		return id - 1;
+	}
+	else
+	{
+		float* depth_ptr = new float[w * h];
+		id_depth_buffer[id] = depth_ptr;
+
+		float** msaa_ptr = new float*[w * h];
+		for (size_t i = 0; i < w * h; i++)
+		{
+			msaa_ptr[i] = new float[MULTISAPLE];
+		}
+		id_depth_buffer[id] = depth_ptr;
+		id_msaa_depth_buffer[id] = msaa_ptr;
+
+		id++;
+		return id - 1;
+	}
 }
 
 void Render::set_frame_buffer(int switch_id)
@@ -135,6 +208,27 @@ void Render::drawPixel(int x, int y, uint32_t color)
 	g_frameBuff[idx] = color;
 }
 
+void Render::ResolvePixel()
+{
+	auto& g_frameBuff = id_frame_buffer[this->target_frame_buffer_id];
+	auto& g_msaa_frame = id_msaa_frame_buffer[this->target_frame_buffer_id];
+	Vec4f color = {0.0f};
+	for (int row = 0; row < g_height; ++row)
+	{
+		for (int col = 0; col < g_width; ++col)
+		{
+			int idx = row * g_width + col;
+			color = {0.0f};
+
+			for (int i = 0; i < MULTISAPLE; i++)
+			{
+				color += vector_from_color(g_msaa_frame[idx][i]);
+			}
+			g_frameBuff[idx] = vector_to_color(color * 0.25f);
+		}
+	}
+}
+
 // 交换缓冲区
 void Render::update(HWND hWnd)
 {
@@ -148,15 +242,28 @@ void Render::clearBuffer()
 {
 	auto& g_frameBuff = id_frame_buffer[this->target_frame_buffer_id];
 	auto& g_depthBuff = id_depth_buffer[this->target_depth_buffer_id];
+	auto& g_msaa_frameBuff = id_msaa_frame_buffer[this->target_frame_buffer_id];
+	auto& g_msaa_depthBuff = id_msaa_depth_buffer[this->target_depth_buffer_id];
+	auto& g_coverage_mask = id_coverage_mask[this->target_frame_buffer_id];
 	for (int row = 0; row < g_height; ++row)
 	{
 		for (int col = 0; col < g_width; ++col)
 		{
 			int idx = row * g_width + col;
 			// 默认背景色浅蓝 R123 G195 B221
-			g_frameBuff[idx] = bgColor;
+			g_frameBuff[idx] = _msaa_enable ? 0.0f : bgColor;
 			// 深度缓冲区 1.0f
 			g_depthBuff[idx] = 0.0f;
+			// msaa
+			if (_msaa_enable)
+			{
+				for (int i = 0; i < MULTISAPLE; i++)
+				{
+					g_msaa_frameBuff[idx][i] = bgColor;
+					g_msaa_depthBuff[idx][i] = 0.0f;
+					g_coverage_mask[idx][i] = false;
+				}
+			}
 		}
 	}
 }
@@ -210,8 +317,11 @@ void Render::drawPrimitive(const std::vector<int>& indices2draw, const Mesh& mes
 {
 	int _min_x = 0, _max_x = 0, _min_y = 0, _max_y = 0;
 
-	auto& g_frameBuff = id_frame_buffer[this->target_frame_buffer_id];
-	auto& g_depthBuff = id_depth_buffer[this->target_depth_buffer_id];
+	auto& target_frame = id_frame_buffer[this->target_frame_buffer_id];
+	auto& target_depth = id_depth_buffer[this->target_depth_buffer_id];
+	auto& target_msaa_frame = id_msaa_frame_buffer[this->target_frame_buffer_id];
+	auto& target_msaa_depth = id_msaa_depth_buffer[this->target_depth_buffer_id];
+	auto& target_coverage_mask = id_coverage_mask[this->target_frame_buffer_id];
 
 	// 顶点着色器
 	for (int k = 0; k < 3; ++k)
@@ -283,16 +393,57 @@ void Render::drawPrimitive(const std::vector<int>& indices2draw, const Mesh& mes
 	const Vec2f& f1 = g_vertexAttr[1].spf;
 	const Vec2f& f2 = g_vertexAttr[2].spf;
 
+
 	for (int cy = _min_y; cy <= _max_y; cy++)
 	{
 		for (int cx = _min_x; cx <= _max_x; cx++)
 		{
+			// msaa
+			if (_msaa_enable)
+			{
+				int cnt = 0;
+				int row = (int)sqrt(MULTISAPLE);
+				int col = (int)sqrt(MULTISAPLE);
+				float step = 1.0f / static_cast<float>(row + 1.0f);
+
+				int idx = cy * g_width + cx;
+				for (int j = 0; j < col; j++)
+				{
+					for (int i = 0; i < row; i++)
+					{
+						int sub_idx = j * row + i;
+						float fx = static_cast<float>(cx) + static_cast<float>(i + 1) * step;
+						float fy = static_cast<float>(cy) + static_cast<float>(j + 1) * step;
+						if (!inTriangle(f0, f1, f2, fx, fy))continue;
+
+						Vec2f cxy = {fx, fy};
+						Vec2f s0 = f0 - cxy;
+						Vec2f s1 = f1 - cxy;
+						Vec2f s2 = f2 - cxy;
+						float a = Abs(vector_cross(s1, s2));
+						float b = Abs(vector_cross(s2, s0));
+						float c = Abs(vector_cross(s0, s1));
+						float s = a + b + c;
+						if (s == 0.0f)continue;
+
+						a = a * (1.0f / s);
+						b = b * (1.0f / s);
+						c = c * (1.0f / s);
+						float rhw = g_vertexAttr[0].pos.z * a + g_vertexAttr[1].pos.z * b + g_vertexAttr[2].pos.z * c;
+						if (rhw < target_msaa_depth[idx][sub_idx])continue;
+
+						target_msaa_depth[idx][sub_idx] = rhw;
+						target_coverage_mask[idx][sub_idx] = true;
+						cnt++;
+					}
+				}
+
+				if (cnt == 0)continue;
+			}
+
 			// 判断是不是在三角形内部
 
-			int res01 = (p0.x - cx) * (p1.y - cy) - (p1.x - cx) * (p0.y - cy);
-			int res12 = (p1.x - cx) * (p2.y - cy) - (p2.x - cx) * (p1.y - cy);
-			int res20 = (p2.x - cx) * (p0.y - cy) - (p0.x - cx) * (p2.y - cy);
-			if (res01 > 0 || res12 > 0 || res20 > 0)continue;
+			if (!_msaa_enable && !inTriangle(f0, f1, f2, cx, cy))continue;
 
 			Vec2f cxy = {(float)cx + 0.5f, (float)cy + 0.5f};
 
@@ -315,8 +466,9 @@ void Render::drawPrimitive(const std::vector<int>& indices2draw, const Mesh& mes
 			float rhw = g_vertexAttr[0].pos.z * a + g_vertexAttr[1].pos.z * b + g_vertexAttr[2].pos.z * c;
 
 			// 深度测试
-			if (rhw < g_depthBuff[cy * g_width + cx]) continue;
-			g_depthBuff[cy * g_width + cx] = rhw;
+			if (!_msaa_enable && rhw < target_depth[cy * g_width + cx]) continue;
+			target_depth[cy * g_width + cx] = rhw;
+
 
 			// 还原当前像素的 w
 			float w = 1.0f / ((rhw != 0.0f) ? rhw : 1.0f);
@@ -371,7 +523,18 @@ void Render::drawPrimitive(const std::vector<int>& indices2draw, const Mesh& mes
 			color = frag_shader(frag_input);
 
 			auto color32 = vector_to_color(color);
-			drawPixel(cx, cy, color32);
+
+			if (_msaa_enable)
+			{
+				for (int i = 0; i < MULTISAPLE; i++)
+				{
+					if (target_coverage_mask[cy * g_width + cx][i] /*&& rhw > target_msaa_depth[cy * g_width + cx][i]*/)
+					{
+						target_msaa_frame[cy * g_width + cx][i] = color32;
+					}
+				}
+			}
+			else drawPixel(cx, cy, color32);
 		}
 	}
 
@@ -648,4 +811,14 @@ void Render::drawLineBresenham(int x1, int y1, int x2, int y2, uint32_t color)
 			drawPixel(x2, y2, color);
 		}
 	}
+}
+
+
+bool Render::inTriangle(const Vec2f& f0, const Vec2f& f1, const Vec2f& f2, const float& x, const float& y)
+{
+	float res01 = (f0.x - x) * (f1.y - y) - (f1.x - x) * (f0.y - y);
+	float res12 = (f1.x - x) * (f2.y - y) - (f2.x - x) * (f1.y - y);
+	float res20 = (f2.x - x) * (f0.y - y) - (f0.x - x) * (f2.y - y);
+	if (res01 > 0 || res12 > 0 || res20 > 0)return false;
+	return true;
 }

@@ -1,6 +1,7 @@
-#if 1
+#if true
 #include <windows.h>
 #include <chrono>
+
 #include "gdi_renderer.h"
 #include "geometry.h"
 #include "shader_instance.h"
@@ -8,11 +9,11 @@
 #include "camera.h"
 #include "model.h"
 
-
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-constexpr int WIDTH = 800;
-constexpr int HEIGHT = 600;
+constexpr int WIDTH = 1920;
+constexpr int HEIGHT = 1080;
+constexpr bool MSAA_ENABLE = true;
 
 Camera camera({0, 0, 3}, {0, 0, 0}, {0, 1, 0});
 
@@ -159,10 +160,11 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	// renderer init
 	Render render(WIDTH, HEIGHT);
 	render.initRenderer(hWnd);
+	render.msaa_enable(MSAA_ENABLE);
 
 	// create frame buffer
-	int frame_buffer_id = render.create_frame_buffer(WIDTH,HEIGHT);
-	int depth_buffer_id = render.create_depth_buffer(WIDTH,HEIGHT);
+	int frame_buffer_id = render.create_frame_buffer(WIDTH, HEIGHT);
+	int depth_buffer_id = render.create_depth_buffer(WIDTH, HEIGHT);
 
 	render.set_frame_buffer(frame_buffer_id);
 	render.set_depth_buffer(depth_buffer_id);
@@ -197,6 +199,10 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 			mat_model_it = matrix_invert(mat_model).Transpose();
 			mat_mvp = mat_model * mat_view * mat_proj;
 			render.drawCall(mesh, vert_gouraud_tex, frag_gouraud_tex);
+
+			// Resolve msaa
+			if (MSAA_ENABLE)
+				render.ResolvePixel();
 
 			// swap buffer
 			render.update(hWnd);
