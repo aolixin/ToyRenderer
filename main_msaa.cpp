@@ -1,4 +1,4 @@
-#if true
+#if false
 #include <windows.h>
 #include <chrono>
 
@@ -17,8 +17,8 @@ constexpr int WIDTH = 1920;
 constexpr int HEIGHT = 1080;
 constexpr bool MSAA_ENABLE = true;
 
-//Camera camera({2, 3, 4}, {0, 0, 0}, {0, 1, 0});
-Camera camera({0, 0, 3}, {0, 0, 0}, {0, 1, 0});
+Camera camera({2, 3, 4}, {0, 0, 0}, {0, 1, 0});
+//Camera camera({0, 0, 3}, {0, 0, 0}, {0, 1, 0});
 
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
                    _In_ LPSTR lpCmdLine, _In_ int nShowCmd)
@@ -219,23 +219,18 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 			mat_view = matrix_set_lookat(camera.pos, camera.target, camera.up);
 			mat_proj = matrix_set_perspective(fovy, aspect, zn, zf);
 
-			// draw plane
-			//mat_model = matrix_set_scale(5,1,5);
-			//mat_model_it = matrix_invert(mat_model).Transpose();
-			//mat_mvp = mat_model * mat_view * mat_proj;
-			//render.drawCall(plane_mesh, vert_normal, frag_normal);
-
 
 			// draw person
-			mat_model = matrix_set_identity();
-			mat_model_it = matrix_invert(mat_model).Transpose();
-			mat_mvp = mat_model * mat_view * mat_proj;
-			render.drawCall(mesh, vert_gouraud_tex, frag_gouraud_tex);
-
 			//mat_model = matrix_set_identity();
 			//mat_model_it = matrix_invert(mat_model).Transpose();
 			//mat_mvp = mat_model * mat_view * mat_proj;
-			//render.drawCall(cube_mesh, vert_normal_cube, frag_normal_cube);
+			//render.drawCall(mesh, vert_gouraud_tex, frag_gouraud_tex);
+
+			// draw cube
+			mat_model = matrix_set_identity();
+			mat_model_it = matrix_invert(mat_model).Transpose();
+			mat_mvp = mat_model * mat_view * mat_proj;
+			render.drawCall(cube_mesh, vert_normal_cube, frag_normal_cube);
 
 			// Resolve msaa
 			if (MSAA_ENABLE)

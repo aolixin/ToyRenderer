@@ -1,6 +1,7 @@
-#if flase
+#if true
 #include <windows.h>
 #include <chrono>
+
 #include "gdi_renderer.h"
 #include "geometry.h"
 #include "shader_instance.h"
@@ -8,18 +9,20 @@
 #include "camera.h"
 #include "model.h"
 
-
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-constexpr int WIDTH = 1920;
-constexpr int HEIGHT = 1080;
+constexpr int WIDTH = 800;
+constexpr int HEIGHT = 600;
 
-Camera camera({0, 0, 3}, {0, 0, 0}, {0, 1, 0});
+constexpr bool MSAA_ENABLE = false;
+
+//Camera camera({2, 3, 4}, {0, 0, 0}, {0, 1, 0});
+Camera camera({ 0, 0, 3 }, { 0, 0, 0 }, { 0, 1, 0 });
 
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
-                   _In_ LPSTR lpCmdLine, _In_ int nShowCmd)
+	_In_ LPSTR lpCmdLine, _In_ int nShowCmd)
 {
-	WNDCLASSEX wcex = {0};
+	WNDCLASSEX wcex = { 0 };
 	wcex.cbSize = sizeof(WNDCLASSEX);
 	wcex.style = CS_HREDRAW | CS_VREDRAW;
 	wcex.lpfnWndProc = WndProc;
@@ -32,9 +35,9 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	if (!RegisterClassEx(&wcex))
 	{
 		MessageBox(NULL,
-		           L"Call to RegisterClassEx failed!",
-		           L"Win32 Guided Tour",
-		           NULL);
+			L"Call to RegisterClassEx failed!",
+			L"Win32 Guided Tour",
+			NULL);
 
 		return 1;
 	}
@@ -54,9 +57,9 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	if (!hWnd)
 	{
 		MessageBox(NULL,
-		           L"Call to CreateWindow failed!",
-		           L"Win32 Guided Tour",
-		           NULL);
+			L"Call to CreateWindow failed!",
+			L"Win32 Guided Tour",
+			NULL);
 
 		return 1;
 	}
@@ -67,7 +70,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 
 	// build mesh
 
-	Model model("diablo3_pose.obj");
+	Model model("res/diablo3_pose/diablo3_pose.obj");
 	Mesh mesh;
 
 	int face_num = model.nfaces();
@@ -106,63 +109,93 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	constexpr float aspect = (float)WIDTH / HEIGHT;
 	constexpr float zn = 1.0f;
 	constexpr float zf = 500.0f;
-	Vec3f light_dir = {-1, -1, 1};
+	Vec3f light_dir = { -1, -1, 1 };
 
 	// shader definition
 	auto vert_gouraud_tex = [&](int index, ShaderContext& output) -> Vec4f
-	{
-		Vec4f pos = mesh.vertices[index].pos.xyz1() * mat_mvp;
-		Vec3f pos_world = (mesh.vertices[index].pos.xyz1() * mat_model).xyz();
-		Vec3f eye_dir = camera.pos - pos_world;
-		output.varying_vec2f[VARYING_UV] = mesh.vertices[index].uv;
-		output.varying_vec3f[VARYING_EYE] = eye_dir;
-		return pos;
-	};
+		{
+			Vec4f pos = mesh.vertices[index].pos.xyz1() * mat_mvp;
+			Vec3f pos_world = (mesh.vertices[index].pos.xyz1() * mat_model).xyz();
+			Vec3f eye_dir = camera.pos - pos_world;
+			output.varying_vec2f[VARYING_UV] = mesh.vertices[index].uv;
+			output.varying_vec3f[VARYING_EYE] = eye_dir;
+			return pos;
+		};
 
 	auto frag_gouraud_tex = [&](ShaderContext& input) -> Vec4f
-	{
-		Vec2f uv = input.varying_vec2f[VARYING_UV];
+		{
+			Vec2f uv = input.varying_vec2f[VARYING_UV];
 
-		Vec3f eye_dir = input.varying_vec3f[VARYING_EYE];
+			Vec3f eye_dir = input.varying_vec3f[VARYING_EYE];
 
-		Vec3f l = vector_normalize(light_dir);
+			Vec3f l = vector_normalize(light_dir);
 
-		Vec3f n = (model.normal(uv).xyz1() * mat_model_it).xyz();
+			Vec3f n = (model.normal(uv).xyz1() * mat_model_it).xyz();
 
-		float s = model.Specular(uv);
+			float s = model.Specular(uv);
 
-		Vec3f r = vector_normalize(n * vector_dot(n, l) * 2.0f - l);
+			Vec3f r = vector_normalize(n * vector_dot(n, l) * 2.0f - l);
 
-		float p = Saturate(vector_dot(r, eye_dir));
-		float spec = Saturate(pow(p, s * 20) * 0.05);
+			float p = Saturate(vector_dot(r, eye_dir));
+			float spec = Saturate(pow(p, s * 20) * 0.05);
 
-		float intense = Saturate(vector_dot(n, l)) + 0.2f + spec;
-		Vec4f color = model.diffuse(uv);
-		return color * intense;
-	};
+			float intense = Saturate(vector_dot(n, l)) + 0.2f + spec;
+			Vec4f color = model.Diffuse(uv);
+			return color * intense;
+		};
 
-	auto vert_normal = [&](int index, ShaderContext& output) -> Vec4f
-	{
-		Vec4f pos = plane_mesh.vertices[index].pos.xyz1() * mat_mvp;
-		output.varying_vec2f[VARYING_TEXUV] = plane_mesh.vertices[index].uv;
-		output.varying_vec4f[VARYING_COLOR] = plane_mesh.vertices[index].color.xyz1();
-		Vec3f normal = plane_mesh.vertices[index].normal;
+	auto vert_normal_plane = [&](int index, ShaderContext& output) -> Vec4f
+		{
+			Vec4f pos = plane_mesh.vertices[index].pos.xyz1() * mat_mvp;
+			output.varying_vec2f[VARYING_TEXUV] = plane_mesh.vertices[index].uv;
+			output.varying_vec4f[VARYING_COLOR] = plane_mesh.vertices[index].color.xyz1();
+			Vec3f normal = plane_mesh.vertices[index].normal;
 
-		return pos;
-	};
+			return pos;
+		};
 
-	auto frag_normal = [&](ShaderContext& vert_input) -> Vec4f
-	{
-		return vert_input.varying_vec4f[VARYING_COLOR];
-	};
+	auto frag_normal_plane = [&](ShaderContext& vert_input) -> Vec4f
+		{
+			return vert_input.varying_vec4f[VARYING_COLOR];
+		};
+
+	auto vert_normal_cube = [&](int index, ShaderContext& output) -> Vec4f
+		{
+			Vec4f pos = cube_mesh.vertices[index].pos.xyz1() * mat_mvp;
+			output.varying_vec2f[VARYING_TEXUV] = cube_mesh.vertices[index].uv;
+			output.varying_vec4f[VARYING_COLOR] = cube_mesh.vertices[index].color.xyz1();
+			Vec3f normal = cube_mesh.vertices[index].normal;
+
+			return pos;
+		};
+
+	auto frag_normal_cube = [&](ShaderContext& vert_input) -> Vec4f
+		{
+			return vert_input.varying_vec4f[VARYING_COLOR];
+		};
+
+	auto vert_tex = [&](int index, ShaderContext& output) -> Vec4f
+		{
+			Vec4f pos = plane_mesh.vertices[index].pos.xyz1() * mat_mvp;
+			output.varying_vec2f[VARYING_TEXUV] = cube_mesh.vertices[index].uv;
+
+			return pos;
+		};
+
+	auto frag_tex = [&](ShaderContext& vert_input) -> Vec4f
+		{
+			Vec2f uv = vert_input.varying_vec2f[VARYING_TEXUV];
+			return model.normal(uv).xyz1();
+		};
 
 	// renderer init
 	Render render(WIDTH, HEIGHT);
 	render.initRenderer(hWnd);
+	render.msaa_enable(MSAA_ENABLE);
 
 	// create frame buffer
-	int frame_buffer_id = render.create_frame_buffer(WIDTH,HEIGHT);
-	int depth_buffer_id = render.create_depth_buffer(WIDTH,HEIGHT);
+	int frame_buffer_id = render.create_frame_buffer(WIDTH, HEIGHT);
+	int depth_buffer_id = render.create_depth_buffer(WIDTH, HEIGHT);
 
 	render.set_frame_buffer(frame_buffer_id);
 	render.set_depth_buffer(depth_buffer_id);
@@ -197,6 +230,15 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 			mat_model_it = matrix_invert(mat_model).Transpose();
 			mat_mvp = mat_model * mat_view * mat_proj;
 			render.drawCall(mesh, vert_gouraud_tex, frag_gouraud_tex);
+
+			//mat_model = matrix_set_identity();
+			//mat_model_it = matrix_invert(mat_model).Transpose();
+			//mat_mvp = mat_model * mat_view * mat_proj;
+			//render.drawCall(cube_mesh, vert_normal_cube, frag_normal_cube);
+
+			// Resolve msaa
+			if (MSAA_ENABLE)
+				render.ResolvePixel();
 
 			// swap buffer
 			render.update(hWnd);

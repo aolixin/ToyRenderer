@@ -1,5 +1,4 @@
 #pragma once
-#pragma once
 #include <cstdint>
 #include <fstream>
 #include <vector>
@@ -47,7 +46,12 @@ struct TGAImage
 
 	inline TGAColor sample2D(Vec2f& uvf);
 
-	std::uint32_t sample2D_uint32_t(Vec2f& uvf);
+	inline std::uint32_t sample2D_uint32_t(Vec2f& uvf);
+
+	inline std::uint32_t SampleBilinear(float x, float y);
+
+	inline std::uint32_t BilinearInterp(uint32_t tl, uint32_t tr, uint32_t bl, uint32_t br, int32_t distx,
+	                                       int32_t disty);
 
 private:
 	inline bool load_rle_data(std::ifstream& in);
@@ -350,5 +354,54 @@ TGAColor TGAImage::sample2D(Vec2f& uvf)
 
 std::uint32_t TGAImage::sample2D_uint32_t(Vec2f& uvf)
 {
-	return get_uint32_t(uvf[0] * width(), uvf[1] * height());
+	return SampleBilinear(uvf[0] * width(), uvf[1] * height());
+}
+
+// 双线性插值
+std::uint32_t TGAImage::SampleBilinear(float x, float y)
+{
+	int32_t fx = (int32_t)(x * 0x10000);
+	int32_t fy = (int32_t)(y * 0x10000);
+
+	int32_t x1 = Between(0, width() - 1, (fx >> 16) - 1);
+	int32_t y1 = Between(0, height() - 1, (fy >> 16) - 1);
+	int32_t x2 = Between(0, width() - 1, fx >> 16);
+	int32_t y2 = Between(0, height() - 1, fy >> 16);
+
+	int32_t dx = (fx >> 8) & 0xff;
+	int32_t dy = (fy >> 8) & 0xff;
+	if (width() <= 0 || height() <= 0) return 0;
+	uint32_t c00 = get_uint32_t(x1, y1);
+	uint32_t c01 = get_uint32_t(x2, y1);
+	uint32_t c10 = get_uint32_t(x1, y2);
+	uint32_t c11 = get_uint32_t(x2, y2);
+	return BilinearInterp(c00, c01, c10, c11, dx, dy);
+}
+
+
+// 双线性插值计算：给出四个点的颜色，以及坐标偏移，计算结果
+std::uint32_t TGAImage::BilinearInterp(uint32_t tl, uint32_t tr, uint32_t bl, uint32_t br, int32_t distx, int32_t disty)
+{
+	uint32_t f, r;
+	int32_t distxy = distx * disty;
+	int32_t distxiy = (distx << 8) - distxy; /* distx * (256 - disty) */
+	int32_t distixy = (disty << 8) - distxy; /* disty * (256 - distx) */
+	int32_t distixiy = 256 * 256 - (disty << 8) - (distx << 8) + distxy;
+	r = (tl & 0x000000ff) * distixiy + (tr & 0x000000ff) * distxiy
+		+ (bl & 0x000000ff) * distixy + (br & 0x000000ff) * distxy;
+	f = (tl & 0x0000ff00) * distixiy + (tr & 0x0000ff00) * distxiy
+		+ (bl & 0x0000ff00) * distixy + (br & 0x0000ff00) * distxy;
+	r |= f & 0xff000000;
+	tl >>= 16;
+	tr >>= 16;
+	bl >>= 16;
+	br >>= 16;
+	r >>= 16;
+	f = (tl & 0x000000ff) * distixiy + (tr & 0x000000ff) * distxiy
+		+ (bl & 0x000000ff) * distixy + (br & 0x000000ff) * distxy;
+	r |= f & 0x00ff0000;
+	f = (tl & 0x0000ff00) * distixiy + (tr & 0x0000ff00) * distxiy
+		+ (bl & 0x0000ff00) * distixy + (br & 0x0000ff00) * distxy;
+	r |= f & 0xff000000;
+	return r;
 }
