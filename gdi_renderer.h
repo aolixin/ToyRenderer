@@ -3,7 +3,6 @@
 #include <iostream>
 #include <windows.h>
 #include <stdlib.h>
-#include <tchar.h>
 #include <memory>
 #include <unordered_map>
 
@@ -213,19 +212,25 @@ void Render::ResolvePixel()
 {
 	auto& g_frameBuff = id_frame_buffer[this->target_frame_buffer_id];
 	auto& g_msaa_frame = id_msaa_frame_buffer[this->target_frame_buffer_id];
+	auto& g_covergae_mask = id_coverage_mask[this->target_frame_buffer_id];
 	Vec4f color = {0.0f, 0.0f, 0.0f, 0.0f};
-	for (int row = 0; row < g_height; ++row)
+	for (int cy = 0; cy < g_height; ++cy)
 	{
-		for (int col = 0; col < g_width; ++col)
+		for (int cx = 0; cx < g_width; ++cx)
 		{
-			int idx = row * g_width + col;
+			int idx = cy * g_width + cx;
 			color = {0.0f, 0.0f, 0.0f, 0.0f};
-
+			int cnt = 0;
 			for (int k = 0; k < MULTISAPLE; k++)
 			{
-				color += g_msaa_frame[idx][k] / (float)MULTISAPLE;
+				if (g_covergae_mask[idx][k])cnt++;
+				color += g_msaa_frame[idx][k];
 			}
-			g_frameBuff[idx] = vector_to_color(color);
+			color.a = 1.0f;
+
+			auto co = vector_to_color(color / (float)MULTISAPLE);
+
+			g_frameBuff[idx] = vector_to_color(color / (float)MULTISAPLE);
 		}
 	}
 }
@@ -260,7 +265,7 @@ void Render::clearBuffer()
 			{
 				for (int i = 0; i < MULTISAPLE; i++)
 				{
-					g_msaa_frameBuff[idx][i] = vector_from_color(bgColor);
+					g_msaa_frameBuff[idx][i] = {0.0f, 0.0f, 0.0f, 0.0f};
 					g_msaa_depthBuff[idx][i] = 0.0f;
 					g_coverage_mask[idx][i] = false;
 				}
@@ -405,7 +410,7 @@ void Render::drawPrimitive(const std::vector<int>& indices2draw, const Mesh& mes
 				int cnt = 0;
 				int row = (int)sqrt(MULTISAPLE);
 				int col = (int)sqrt(MULTISAPLE);
-				float step = 1.0f / static_cast<float>(row + 1.0f);
+				float step = 1.0f / (row + 1.0f);
 
 				int idx = cy * g_width + cx;
 				for (int j = 0; j < row; j++)
@@ -415,8 +420,6 @@ void Render::drawPrimitive(const std::vector<int>& indices2draw, const Mesh& mes
 						int sub_idx = j * col + i;
 						float fx = static_cast<float>(cx) + static_cast<float>(i + 1) * step;
 						float fy = static_cast<float>(cy) + static_cast<float>(j + 1) * step;
-						//fx = static_cast<float>(cx + 0.5f);
-						//fy = static_cast<float>(cy + 0.5f);
 						if (!inTriangle(f0, f1, f2, fx, fy))continue;
 
 						Vec2f cxy = {fx, fy};

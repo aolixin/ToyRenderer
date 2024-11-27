@@ -11,8 +11,10 @@
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-constexpr int WIDTH = 800;
-constexpr int HEIGHT = 600;
+//constexpr int WIDTH = 800;
+//constexpr int HEIGHT = 600;
+constexpr int WIDTH = 1920;
+constexpr int HEIGHT = 1080;
 constexpr bool MSAA_ENABLE = true;
 
 //Camera camera({2, 3, 4}, {0, 0, 0}, {0, 1, 0});
@@ -121,28 +123,6 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 		return pos;
 	};
 
-	//auto frag_gouraud_tex = [&](ShaderContext& input) -> Vec4f
-	//{
-	//	Vec2f uv = input.varying_vec2f[VARYING_UV];
-
-	//	Vec3f eye_dir = input.varying_vec3f[VARYING_EYE];
-
-	//	Vec3f l = vector_normalize(light_dir);
-
-	//	Vec3f n = (model.normal(uv).xyz1() * mat_model_it).xyz();
-
-	//	float s = model.Specular(uv);
-
-	//	Vec3f r = vector_normalize(n * vector_dot(n, l) * 2.0f - l);
-
-	//	float p = Saturate(vector_dot(r, eye_dir));
-	//	float spec = Saturate(pow(p, s * 20) * 0.05);
-
-	//	float intense = Saturate(vector_dot(n, l)) + 0.2f + spec;
-	//	Vec4f color = model.Diffuse(uv);
-	//	return color * intense;
-	//};
-
 	auto frag_gouraud_tex = [&](ShaderContext& input) -> Vec4f
 	{
 		Vec2f uv = input.varying_vec2f[VARYING_UV];
@@ -195,6 +175,20 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 		return vert_input.varying_vec4f[VARYING_COLOR];
 	};
 
+	auto vert_tex = [&](int index, ShaderContext& output) -> Vec4f
+	{
+		Vec4f pos = plane_mesh.vertices[index].pos.xyz1() * mat_mvp;
+		output.varying_vec2f[VARYING_TEXUV] = cube_mesh.vertices[index].uv;
+
+		return pos;
+	};
+
+	auto frag_tex = [&](ShaderContext& vert_input) -> Vec4f
+	{
+		Vec2f uv = vert_input.varying_vec2f[VARYING_TEXUV];
+		return model.normal(uv).xyz1();
+	};
+
 	// renderer init
 	Render render(WIDTH, HEIGHT);
 	render.initRenderer(hWnd);
@@ -238,7 +232,6 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 			mat_mvp = mat_model * mat_view * mat_proj;
 			render.drawCall(mesh, vert_gouraud_tex, frag_gouraud_tex);
 
-			// draw person
 			//mat_model = matrix_set_identity();
 			//mat_model_it = matrix_invert(mat_model).Transpose();
 			//mat_mvp = mat_model * mat_view * mat_proj;
