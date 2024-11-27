@@ -69,7 +69,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 
 	// build mesh
 
-	Model model("diablo3_pose.obj");
+	Model model("res/diablo3_pose/diablo3_pose.obj");
 	Mesh mesh;
 
 	int face_num = model.nfaces();
@@ -121,6 +121,28 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 		return pos;
 	};
 
+	//auto frag_gouraud_tex = [&](ShaderContext& input) -> Vec4f
+	//{
+	//	Vec2f uv = input.varying_vec2f[VARYING_UV];
+
+	//	Vec3f eye_dir = input.varying_vec3f[VARYING_EYE];
+
+	//	Vec3f l = vector_normalize(light_dir);
+
+	//	Vec3f n = (model.normal(uv).xyz1() * mat_model_it).xyz();
+
+	//	float s = model.Specular(uv);
+
+	//	Vec3f r = vector_normalize(n * vector_dot(n, l) * 2.0f - l);
+
+	//	float p = Saturate(vector_dot(r, eye_dir));
+	//	float spec = Saturate(pow(p, s * 20) * 0.05);
+
+	//	float intense = Saturate(vector_dot(n, l)) + 0.2f + spec;
+	//	Vec4f color = model.Diffuse(uv);
+	//	return color * intense;
+	//};
+
 	auto frag_gouraud_tex = [&](ShaderContext& input) -> Vec4f
 	{
 		Vec2f uv = input.varying_vec2f[VARYING_UV];
@@ -139,7 +161,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 		float spec = Saturate(pow(p, s * 20) * 0.05);
 
 		float intense = Saturate(vector_dot(n, l)) + 0.2f + spec;
-		Vec4f color = model.diffuse(uv);
+		Vec4f color = model.Diffuse(uv);
 		return color * intense;
 	};
 

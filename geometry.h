@@ -316,6 +316,7 @@ struct Vector<4, T>
 		T data[4];
 	};
 
+
 	inline Vector()
 	{
 		x = y = z = w = T();
@@ -1328,8 +1329,6 @@ inline static Mat4x4f matrix_set_ortho(float left, float right, float bottom, fl
 	m.data[3][2] = zn / (zn - zf);
 	return m;
 }
-
-
 
 
 // 旋转变换，围绕 (x, y, z) 矢量旋转 theta 角度

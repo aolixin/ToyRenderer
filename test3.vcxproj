@@ -144,6 +144,7 @@
     <ClInclude Include="shader.h" />
     <ClInclude Include="shader_instance.h" />
     <ClInclude Include="shadow.h" />
+    <ClInclude Include="tgaimage.h" />
     <ClInclude Include="util.h" />
     <ClInclude Include="vertex.h" />
   </ItemGroup>
