@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <windows.h>
 #include <stdlib.h>
 #include <tchar.h>
@@ -212,19 +213,19 @@ void Render::ResolvePixel()
 {
 	auto& g_frameBuff = id_frame_buffer[this->target_frame_buffer_id];
 	auto& g_msaa_frame = id_msaa_frame_buffer[this->target_frame_buffer_id];
-	Vec4f color = {0.0f};
+	Vec4f color = { 0.0f, 0.0f, 0.0f, 0.0f };
 	for (int row = 0; row < g_height; ++row)
 	{
 		for (int col = 0; col < g_width; ++col)
 		{
 			int idx = row * g_width + col;
-			color = {0.0f};
+			color = {0.0f, 0.0f, 0.0f, 0.0f};
 
 			for (int i = 0; i < MULTISAPLE; i++)
 			{
-				color += g_msaa_frame[idx][i];
+				color += g_msaa_frame[idx][i] / (float)MULTISAPLE;
 			}
-			g_frameBuff[idx] = vector_to_color(color * 0.25f);
+			g_frameBuff[idx] = vector_to_color(color);
 		}
 	}
 }
@@ -251,7 +252,7 @@ void Render::clearBuffer()
 		{
 			int idx = row * g_width + col;
 			// 默认背景色浅蓝 R123 G195 B221
-			g_frameBuff[idx] = _msaa_enable ? 0.0f : bgColor;
+			g_frameBuff[idx] = _msaa_enable ? 0 : bgColor;
 			// 深度缓冲区 1.0f
 			g_depthBuff[idx] = 0.0f;
 			// msaa
@@ -407,11 +408,11 @@ void Render::drawPrimitive(const std::vector<int>& indices2draw, const Mesh& mes
 				float step = 1.0f / static_cast<float>(row + 1.0f);
 
 				int idx = cy * g_width + cx;
-				for (int j = 0; j < col; j++)
+				for (int j = 0; j < row; j++)
 				{
-					for (int i = 0; i < row; i++)
+					for (int i = 0; i < col; i++)
 					{
-						int sub_idx = j * row + i;
+						int sub_idx = j * col + i;
 						float fx = static_cast<float>(cx) + static_cast<float>(i + 1) * step;
 						float fy = static_cast<float>(cy) + static_cast<float>(j + 1) * step;
 						if (!inTriangle(f0, f1, f2, fx, fy))continue;
