@@ -65,5 +65,11 @@
     <ClInclude Include="msaa.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="AssModel.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

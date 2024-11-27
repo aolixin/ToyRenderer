@@ -213,7 +213,7 @@ void Render::ResolvePixel()
 {
 	auto& g_frameBuff = id_frame_buffer[this->target_frame_buffer_id];
 	auto& g_msaa_frame = id_msaa_frame_buffer[this->target_frame_buffer_id];
-	Vec4f color = { 0.0f, 0.0f, 0.0f, 0.0f };
+	Vec4f color = {0.0f, 0.0f, 0.0f, 0.0f};
 	for (int row = 0; row < g_height; ++row)
 	{
 		for (int col = 0; col < g_width; ++col)
@@ -221,9 +221,9 @@ void Render::ResolvePixel()
 			int idx = row * g_width + col;
 			color = {0.0f, 0.0f, 0.0f, 0.0f};
 
-			for (int i = 0; i < MULTISAPLE; i++)
+			for (int k = 0; k < MULTISAPLE; k++)
 			{
-				color += g_msaa_frame[idx][i] / (float)MULTISAPLE;
+				color += g_msaa_frame[idx][k] / (float)MULTISAPLE;
 			}
 			g_frameBuff[idx] = vector_to_color(color);
 		}
@@ -415,6 +415,8 @@ void Render::drawPrimitive(const std::vector<int>& indices2draw, const Mesh& mes
 						int sub_idx = j * col + i;
 						float fx = static_cast<float>(cx) + static_cast<float>(i + 1) * step;
 						float fy = static_cast<float>(cy) + static_cast<float>(j + 1) * step;
+						//fx = static_cast<float>(cx + 0.5f);
+						//fy = static_cast<float>(cy + 0.5f);
 						if (!inTriangle(f0, f1, f2, fx, fy))continue;
 
 						Vec2f cxy = {fx, fy};

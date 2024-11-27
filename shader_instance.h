@@ -14,13 +14,13 @@ const int VARYING_EYE = 4; // 眼睛相对顶点的位置
 
 Mesh cube_mesh({
 	{
-		{{1, -1, -1,}, {0, 0}, green_color, {}},
+		{{1, -1, -1,}, {0, 0}, blue_color, {}},
 		{{-1, -1, -1,}, {0, 1}, white_color, {}},
 		{{-1, 1, -1,}, {1, 1}, white_color, {}},
 		{{1, 1, -1,}, {1, 0}, white_color, {}},
 		{{1, -1, 1,}, {0, 0}, white_color, {}},
 		{{-1, -1, 1,}, {0, 1}, white_color, {}},
-		{{-1, 1, 1,}, {1, 1}, blue_color, {}},
+		{{-1, 1, 1,}, {1, 1}, red_color, {}},
 		{{1, 1, 1,}, {1, 0}, white_color, {}}
 	},
 	{

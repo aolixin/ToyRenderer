@@ -1,3 +1,3 @@
 #pragma once
 
-constexpr int MULTISAPLE = 9;
+constexpr int MULTISAPLE = 4;
