@@ -61,7 +61,7 @@ namespace TGA
 		inline bool load_rle_data(std::ifstream& in);
 		inline bool unload_rle_data(std::ofstream& out) const;
 
-		std::vector<std::uint32_t> bicubic_pixels = std::vector<uint32_t>(16);
+		std::vector<Vec4f> bicubic_pixels = std::vector<Vec4f>(16);
 
 		int w = 0;
 		int h = 0;
@@ -348,8 +348,9 @@ namespace TGA
 
 	std::uint32_t TGAImage::sample2D(const Vec2f& uvf) const
 	{
-		return SampleBicubic(uvf.x * w, uvf.y * h);
+		return get(uvf.x * w, uvf.y * h);
 		//return SampleBilinear(uvf.x * w, uvf.y * h);
+		return SampleBicubic(uvf.x * w, uvf.y * h);
 	}
 
 
@@ -409,7 +410,7 @@ namespace TGA
 		int32_t x_int = static_cast<int32_t>(x);
 		int32_t y_int = static_cast<int32_t>(y);
 
-		auto& pixels = const_cast<std::vector<std::uint32_t>&>(bicubic_pixels);
+		auto& pixels = const_cast<std::vector<Vec4f>&>(bicubic_pixels);
 
 		for (int32_t j = 0; j < 4; ++j)
 		{
@@ -417,7 +418,7 @@ namespace TGA
 			{
 				std::int32_t cx = Between(0, width() - 1, x_int - 1 + i);
 				std::int32_t cy = Between(0, height() - 1, y_int - 1 + j);
-				pixels[j * 4 + i] = get(cx, cy);
+				pixels[j * 4 + i] = vector_from_color(get(cx, cy));
 			}
 		}
 		float weight_x = x - x_int;
@@ -431,27 +432,17 @@ namespace TGA
 
 	std::uint32_t TGAImage::BicubicInterp(float weight_x, float weight_y) const
 	{
-		std::uint32_t color = 0;
-		std::uint32_t res = 0;
-		float sum = 0;
+		Vec4f color = {0.0f, 0.0f, 0.0f, 0.0f};
 		for (int32_t j = 0; j < 4; ++j)
 		{
 			for (int32_t i = 0; i < 4; ++i)
 			{
 				float weight = CubicWeight(weight_x - i + 1.0f) * CubicWeight(weight_y - j + 1.0f);
-				sum += weight;
-
-				color = ApplyWeight(bicubic_pixels[j * 4 + i], weight);
-
-				uint32_t b = Between(0u, 255u, (res & 0x000000ff) + (color & 0x000000ff));
-				uint32_t g = Between(0u, 255u, ((res & 0x0000ff00) >> 8) + ((color & 0x0000ff00) >> 8));
-				uint32_t r = Between(0u, 255u, ((res & 0x00ff0000) >> 16) + ((color & 0x00ff0000) >> 16));
-				uint32_t a = Between(0u, 255u, ((res & 0xff000000) >> 24) + ((color & 0xff000000) >> 24));
-				res = b | (g << 8) | (r << 16) | (a << 24);
+				color += bicubic_pixels[j * 4 + i] * weight;
 			}
 		}
 
-		return res;
+		return vector_to_color(color);
 	}
 
 	// 应用权重并转换颜色
@@ -469,7 +460,7 @@ namespace TGA
 	// 三次插值权重函数
 	float TGAImage::CubicWeight(float x)
 	{
-		float abs_x = abs(x);
+		/*float abs_x = abs(x);
 		float a = -0.5;
 		if (abs_x <= 1.0)
 		{
@@ -478,6 +469,18 @@ namespace TGA
 		else if (abs_x < 2.0)
 		{
 			return a * pow(abs_x, 3) - 5 * a * pow(abs_x, 2) + 8 * a * abs_x - 4 * a;
+		}
+		else
+			return 0.0;*/
+
+		float abs_x = abs(x);
+		if (abs_x < 1.0)
+		{
+			return 1 - 2 * abs_x * abs_x + abs_x * abs_x * abs_x;
+		}
+		else if (abs_x < 2.0)
+		{
+			return 4 - 8 * abs_x + 5 * abs_x * abs_x - abs_x * abs_x * abs_x;
 		}
 		else
 			return 0.0;

@@ -11,13 +11,16 @@
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-constexpr int WIDTH = 800;
-constexpr int HEIGHT = 600;
+//constexpr int WIDTH = 800;
+//constexpr int HEIGHT = 600;
+
+constexpr int WIDTH = 1080;
+constexpr int HEIGHT = 720;
 
 constexpr bool MSAA_ENABLE = false;
 
 //Camera camera({2, 3, 4}, {0, 0, 0}, {0, 1, 0});
-Camera camera({3, 0, -1}, {0, 0, 0}, {0, 1, 0});
+Camera camera({0, 0, -3}, {0, 0, 0}, {0, 1, 0});
 
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
                    _In_ LPSTR lpCmdLine, _In_ int nShowCmd)
@@ -89,7 +92,10 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 
 	TGA::TGAImage awesomeface;
 
-	if (!awesomeface.read_tga_file("res/awesomeface.tga"))return 0;
+	std::string file_path = "res/awesomeface.tga";
+	std::string file_path2 = "res/container.tga";
+
+	if (!awesomeface.read_tga_file(file_path2))return 0;
 
 	auto vert_tex = [&](int index, ShaderContext& output) -> Vec4f
 	{
@@ -140,10 +146,12 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 			//mat_model = matrix_set_scale(5,1,5);
 			//mat_model_it = matrix_invert(mat_model).Transpose();
 			//mat_mvp = mat_model * mat_view * mat_proj;
-			//render.drawCall(plane_mesh, vert_normal, frag_normal);
+			//render.drawCall(plane_mesh2, vert_normal, frag_normal);
 
 
-			// draw person
+			// draw plane
+			float scale = 5;
+			mat_model =   matrix_set_scale(scale, scale, 1);
 			mat_model = matrix_set_identity();
 			mat_model_it = matrix_invert(mat_model).Transpose();
 			mat_mvp = mat_model * mat_view * mat_proj;

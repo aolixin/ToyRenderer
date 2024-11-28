@@ -37,9 +37,9 @@ Mesh cube_mesh({
 
 Mesh plane_mesh = {
 	{
-		{{1, -2, -1,}, {0, 0}, white_color, {}},
+		{{1, -2, -1,}, {1, 1}, white_color, {}},
 		{{-1, -2, -1,}, {0, 1}, white_color, {}},
-		{{-1, -2, 1,}, {1, 1}, white_color, {}},
+		{{-1, -2, 1,}, {0, 0}, white_color, {}},
 		{{1, -2, 1,}, {1, 0}, white_color, {}}
 	},
 	{
