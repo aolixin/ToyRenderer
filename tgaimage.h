@@ -57,6 +57,8 @@ namespace TGA
 		inline static std::uint32_t ApplyWeight(std::uint32_t color, float weight);
 		inline static float CubicWeight(float t);
 
+		inline void CreateMipMap(int max_level = -1);
+
 	private:
 		inline bool load_rle_data(std::ifstream& in);
 		inline bool unload_rle_data(std::ofstream& out) const;
@@ -67,6 +69,8 @@ namespace TGA
 		int h = 0;
 		std::uint8_t bpp = 0;
 		std::vector<std::uint8_t> data = {};
+
+		std::vector<std::uint8_t*> mipmap = {};
 	};
 
 
@@ -484,5 +488,22 @@ namespace TGA
 		//}
 		//else
 		//	return 0.0;
+	}
+
+
+	void TGAImage::CreateMipMap(int max_level)
+	{
+		if (max_level == -1)return;
+		mipmap.emplace_back(data.data());
+
+		int mip_width = width();
+		int mip_height = height();
+
+		for (int mip_level = 1; mip_level < max_level; mip_level++)
+		{
+			mip_width >>= 1;
+			mip_height >>= 1;
+
+		}
 	}
 }
