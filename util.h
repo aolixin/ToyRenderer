@@ -74,7 +74,7 @@ void show_str(const HWND& hWnd, const std::string& fps_str, int x, int y)
 	ReleaseDC(hWnd, hdc);
 }
 
-void load_texture(std::string filename, const std::string suffix, TGAImage& img)
+void load_texture(std::string filename, const std::string suffix, TGA::TGAImage& img)
 {
 	size_t dot = filename.find_last_of(".");
 	if (dot == std::string::npos) return;

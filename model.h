@@ -13,10 +13,10 @@ class Model
 	std::vector<int> facet_vrt{};
 	std::vector<int> facet_tex{}; // per-triangle indices in the above arrays
 	std::vector<int> facet_nrm{};
-	TGAImage diffusemap{}; // diffuse color texture
-	TGAImage normalmap{}; // normal map texture
-	TGAImage specularmap{}; // specular map texture
-	void load_texture(const std::string filename, const std::string suffix, TGAImage& img);
+	TGA::TGAImage diffusemap{}; // diffuse color texture
+	TGA::TGAImage normalmap{}; // normal map texture
+	TGA::TGAImage specularmap{}; // specular map texture
+	void load_texture(const std::string filename, const std::string suffix, TGA::TGAImage& img);
 
 public:
 	inline Model(const std::string filename);
@@ -27,11 +27,11 @@ public:
 	inline Vec3f vert(const int i) const;
 	inline Vec3f vert(const int iface, const int nthvert) const;
 	inline Vec2f uv(const int iface, const int nthvert) const;
-	inline const TGAImage& diffuse() const { return diffusemap; }
-	inline const TGAImage& specular() const { return specularmap; }
+	inline const TGA::TGAImage& diffuse() const { return diffusemap; }
+	inline const TGA::TGAImage& specular() const { return specularmap; }
 
-	float inline Specular(Vec2f uv);
-	Vec4f inline Diffuse(Vec2f uv);
+	inline float Specular(Vec2f uv)const;
+	inline Vec4f Diffuse(Vec2f uv)const;
 };
 
 #include <iostream>
@@ -116,7 +116,7 @@ Vec3f Model::vert(const int iface, const int nthvert) const
 	return verts[facet_vrt[iface * 3 + nthvert]];
 }
 
-void Model::load_texture(std::string filename, const std::string suffix, TGAImage& img)
+void Model::load_texture(std::string filename, const std::string suffix, TGA::TGAImage& img)
 {
 	size_t dot = filename.find_last_of(".");
 	if (dot == std::string::npos) return;
@@ -127,8 +127,9 @@ void Model::load_texture(std::string filename, const std::string suffix, TGAImag
 
 Vec3f Model::normal(const Vec2f& uvf) const
 {
-	TGAColor c = normalmap.get(uvf[0] * normalmap.width(), uvf[1] * normalmap.height());
-	return Vec3f{(float)c[2], (float)c[1], (float)c[0]} * 2.0f / 255.0f - Vec3f{1, 1, 1};
+	uint32_t c = normalmap.sample2D(uvf);
+	return Vec3f{float((c >> 16) & 0xff), float((c >> 8) & 0xff), float(c & 0xff)} * 2.0f / 255.0f - Vec3f{1, 1, 1};
+	//return Vec3f{(float)c[2], (float)c[1], (float)c[0]} * 2.0f / 255.0f - Vec3f{1, 1, 1};
 }
 
 Vec2f Model::uv(const int iface, const int nthvert) const
@@ -141,12 +142,12 @@ Vec3f Model::normal(const int iface, const int nthvert) const
 	return norms[facet_nrm[iface * 3 + nthvert]];
 }
 
-float Model::Specular(Vec2f uv)
+float Model::Specular(Vec2f uv)const
 {
-	return vector_from_color(specularmap.sample2D_uint32_t(uv)).b;
+	return float(specularmap.sample2D(uv) & 0xff) / 255;
 }
 
-Vec4f Model::Diffuse(Vec2f uv)
+Vec4f Model::Diffuse(Vec2f uv)const
 {
-	return vector_from_color(diffusemap.sample2D_uint32_t(uv));
+	return vector_from_color(diffusemap.sample2D(uv));
 }

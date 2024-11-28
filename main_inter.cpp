@@ -87,7 +87,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	constexpr float zf = 500.0f;
 	Vec3f light_dir = {-1, -1, 1};
 
-	TGAImage awesomeface;
+	TGA::TGAImage awesomeface;
 
 	if (!awesomeface.read_tga_file("res/awesomeface.tga"))return 0;
 
@@ -103,7 +103,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	{
 		//return white_color.xyz1();
 		Vec2f uv = vert_input.varying_vec2f[VARYING_TEXUV];
-		return vector_from_color(awesomeface.sample2D_uint32_t(uv));
+		return vector_from_color(awesomeface.sample2D(uv));
 	};
 
 	// renderer init
