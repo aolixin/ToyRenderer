@@ -18,9 +18,10 @@ constexpr int WIDTH = 1080;
 constexpr int HEIGHT = 720;
 
 constexpr bool MSAA_ENABLE = false;
+constexpr int mip_level = 4;
 
 //Camera camera({2, 3, 4}, {0, 0, 0}, {0, 1, 0});
-Camera camera({0, 0, -1}, {0, 0, 0}, {0, 1, 0});
+Camera camera({0, 0, -3}, {0, 0, 0}, {0, 1, 0});
 
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
                    _In_ LPSTR lpCmdLine, _In_ int nShowCmd)
@@ -90,12 +91,14 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	constexpr float zf = 500.0f;
 	Vec3f light_dir = {-1, -1, 1};
 
-	TGA::TGAImage awesomeface;
+	TGA::TGAImage tga_image;
 
-	std::string file_path = "res/test.tga";
+	std::string file_path = "res/awesomeface.tga";
 	std::string file_path2 = "res/container.tga";
 
-	if (!awesomeface.read_tga_file(file_path))return 0;
+	if (!tga_image.read_tga_file(file_path))return 0;
+
+	tga_image.CreateMipMap(mip_level);
 
 	auto vert_tex = [&](int index, ShaderContext& output) -> Vec4f
 	{
@@ -105,11 +108,13 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 		return pos;
 	};
 
+	int sample_mip_level = 0;
+
 	auto frag_tex = [&](ShaderContext& vert_input) -> Vec4f
 	{
 		//return white_color.xyz1();
 		Vec2f uv = vert_input.varying_vec2f[VARYING_TEXUV];
-		return vector_from_color(awesomeface.sample2D(uv));
+		return vector_from_color(tga_image.sample_mipmap(uv,sample_mip_level));
 	};
 
 	// renderer init
@@ -142,25 +147,31 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 			mat_view = matrix_set_lookat(camera.pos, camera.target, camera.up);
 			mat_proj = matrix_set_perspective(fovy, aspect, zn, zf);
 
+
+			// show mipmap
+			float scale = 4;
+			float dis = 0;
+			for (int i = 0; i < mip_level; i++)
+			{
+				sample_mip_level = i;
+				mat_model = matrix_set_scale(scale, scale, 1) * matrix_set_translate(dis, 0, 0);
+				mat_model_it = matrix_invert(mat_model).Transpose();
+				mat_mvp = mat_model * mat_view * mat_proj;
+				render.drawCall(plane_mesh2, vert_tex, frag_tex);
+				dis += scale;
+				scale /= 2;
+				dis += scale;
+
+			}
+
 			// draw plane
-			//mat_model = matrix_set_scale(5,1,5);
-			//mat_model_it = matrix_invert(mat_model).Transpose();
-			//mat_mvp = mat_model * mat_view * mat_proj;
-			//render.drawCall(plane_mesh2, vert_normal, frag_normal);
 
-
-			// draw plane
-			float scale = 5;
-			mat_model =   matrix_set_scale(scale, scale, 1);
-			mat_model = matrix_set_identity();
-			mat_model_it = matrix_invert(mat_model).Transpose();
-			mat_mvp = mat_model * mat_view * mat_proj;
-			render.drawCall(plane_mesh2, vert_tex, frag_tex);
-
+			//sample_mip_level = 1;
+			//mat_model = matrix_set_scale(scale, scale, 1);
 			//mat_model = matrix_set_identity();
 			//mat_model_it = matrix_invert(mat_model).Transpose();
 			//mat_mvp = mat_model * mat_view * mat_proj;
-			//render.drawCall(cube_mesh, vert_normal_cube, frag_normal_cube);
+			//render.drawCall(plane_mesh2, vert_tex, frag_tex);
 
 			// Resolve msaa
 			if (MSAA_ENABLE)

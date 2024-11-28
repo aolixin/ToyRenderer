@@ -42,14 +42,15 @@ namespace TGA
 		inline bool write_tga_file(const std::string filename, const bool vflip = true, const bool rle = true) const;
 		inline void flip_horizontally();
 		inline void flip_vertically();
-		inline std::uint32_t get(const int x, const int y) const;
+		inline std::uint32_t get(const int x, const int y, int level = -1) const;
 		inline void set(const int x, const int y, const std::uint32_t&);
 		inline int width() const;
 		inline int height() const;
 
 		inline std::uint32_t sample2D(const Vec2f& uvf) const;
+		inline std::uint32_t sample_mipmap(const Vec2f& uvf, int level) const;
 
-		inline std::uint32_t SampleBilinear(float x, float y) const;
+		inline std::uint32_t SampleBilinear(float x, float y, int = -1) const;
 		inline std::uint32_t BilinearInterp(uint32_t, uint32_t, uint32_t, uint32_t, int32_t, int32_t) const;
 
 		inline std::uint32_t SampleBicubic(float x, float y) const;
@@ -303,8 +304,16 @@ namespace TGA
 		return true;
 	}
 
-	std::uint32_t TGAImage::get(const int x, const int y) const
+	std::uint32_t TGAImage::get(const int x, const int y, int level) const
 	{
+		if (level != -1)
+		{
+			if (level < 0 || level >= mipmap.size())return 0;
+			int mip_width = w >> level;
+			int mip_height = h >> level;
+			const std::uint8_t* p = mipmap[level] + (x + y * mip_width) * bpp;
+			return p[3] << 24 | p[2] << 16 | p[1] << 8 | p[0];
+		}
 		if (!data.size() || x < 0 || y < 0 || x >= w || y >= h)
 			return {};
 		const std::uint8_t* p = data.data() + (x + y * w) * bpp;
@@ -352,14 +361,21 @@ namespace TGA
 
 	std::uint32_t TGAImage::sample2D(const Vec2f& uvf) const
 	{
-		//return get(uvf.x * w, uvf.y * h);
 		return SampleBilinear(uvf.x * w, uvf.y * h);
-		//return SampleBicubic(uvf.x * w, uvf.y * h);
+	}
+
+	std::uint32_t TGAImage::sample_mipmap(const Vec2f& uvf, int level) const
+	{
+		if (level < 0 || level >= mipmap.size())return 0;
+		int mip_width = w >> level;
+		int mip_height = h >> level;
+		//return get(uvf.x * mip_width, uvf.y * mip_height, level);
+		return SampleBilinear(uvf.x * mip_width, uvf.y * mip_height, level);
 	}
 
 
 	// Ë«ÏßÐÔ²åÖµ
-	std::uint32_t TGAImage::SampleBilinear(float x, float y) const
+	std::uint32_t TGAImage::SampleBilinear(float x, float y, int level) const
 	{
 		int32_t fx = (int32_t)(x * 0x10000);
 		int32_t fy = (int32_t)(y * 0x10000);
@@ -372,10 +388,10 @@ namespace TGA
 		int32_t dx = (fx >> 8) & 0xff;
 		int32_t dy = (fy >> 8) & 0xff;
 		if (width() <= 0 || height() <= 0) return 0;
-		uint32_t c00 = get(x1, y1);
-		uint32_t c01 = get(x2, y1);
-		uint32_t c10 = get(x1, y2);
-		uint32_t c11 = get(x2, y2);
+		uint32_t c00 = get(x1, y1, level);
+		uint32_t c01 = get(x2, y1, level);
+		uint32_t c10 = get(x1, y2, level);
+		uint32_t c11 = get(x2, y2, level);
 		return BilinearInterp(c00, c01, c10, c11, dx, dy);
 	}
 
@@ -498,12 +514,55 @@ namespace TGA
 
 		int mip_width = width();
 		int mip_height = height();
-
+		uint8_t* mip = nullptr;
 		for (int mip_level = 1; mip_level < max_level; mip_level++)
 		{
 			mip_width >>= 1;
 			mip_height >>= 1;
+			if (mip_width == 1 || mip_height == 1)break;
+			mip = new uint8_t[mip_width * mip_height * bpp];
+			auto& src = mipmap[mip_level - 1];
+			for (int y = 0; y < mip_height; y++)
+			{
+				for (int x = 0; x < mip_width; x++)
+				{
+					uint8_t r0 = 0, g0 = 0, b0 = 0, a0 = 0;
+					uint8_t r1 = 0, g1 = 0, b1 = 0, a1 = 0;
+					uint8_t r2 = 0, g2 = 0, b2 = 0, a2 = 0;
+					uint8_t r3 = 0, g3 = 0, b3 = 0, a3 = 0;
+					uint8_t r_avg = 0, g_avg = 0, b_avg = 0, a_avg = 0;
+					b0 = src[(y * 2 * 2 * mip_width + x * 2) * bpp];
+					g0 = src[(y * 2 * 2 * mip_width + x * 2) * bpp + 1];
+					r0 = src[(y * 2 * 2 * mip_width + x * 2) * bpp + 2];
+					a0 = src[(y * 2 * 2 * mip_width + x * 2) * bpp + 3];
 
+					b1 = src[(y * 2 * 2 * mip_width + x * 2 + 1) * bpp];
+					g1 = src[(y * 2 * 2 * mip_width + x * 2 + 1) * bpp + 1];
+					r1 = src[(y * 2 * 2 * mip_width + x * 2 + 1) * bpp + 2];
+					a1 = src[(y * 2 * 2 * mip_width + x * 2 + 1) * bpp + 3];
+
+					b2 = src[((y * 2 + 1) * 2 * mip_width + x * 2) * bpp];
+					g2 = src[((y * 2 + 1) * 2 * mip_width + x * 2) * bpp + 1];
+					r2 = src[((y * 2 + 1) * 2 * mip_width + x * 2) * bpp + 2];
+					a2 = src[((y * 2 + 1) * 2 * mip_width + x * 2) * bpp + 3];
+
+					b3 = src[((y * 2 + 1) * 2 * mip_width + x * 2 + 1) * bpp];
+					g3 = src[((y * 2 + 1) * 2 * mip_width + x * 2 + 1) * bpp + 1];
+					r3 = src[((y * 2 + 1) * 2 * mip_width + x * 2 + 1) * bpp + 2];
+					a3 = src[((y * 2 + 1) * 2 * mip_width + x * 2 + 1) * bpp + 3];
+
+					r_avg = uint8_t(((float)r0 + r1 + r2 + r3) / 4);
+					g_avg = uint8_t(((float)g0 + g1 + g2 + g3) / 4);
+					b_avg = uint8_t(((float)b0 + b1 + b2 + b3) / 4);
+					a_avg = uint8_t(((float)a0 + a1 + a2 + a3) / 4);
+
+					mip[(y * mip_width + x) * bpp] = b_avg;
+					mip[(y * mip_width + x) * bpp + 1] = g_avg;
+					mip[(y * mip_width + x) * bpp + 2] = r_avg;
+					mip[(y * mip_width + x) * bpp + 3] = a_avg;
+				}
+			}
+			mipmap.emplace_back(mip);
 		}
 	}
 }
