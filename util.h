@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include "geometry.h"
+#include "tgaimage.h"
 #include "vertex.h"
 
 constexpr float PI = 3.1415926;
@@ -71,4 +72,13 @@ void show_str(const HWND& hWnd, const std::string& fps_str, int x, int y)
 	SetTextColor(hdc, RGB(255, 0, 0));
 	TextOutA(hdc, x, y, fps_str.c_str(), fps_str.length());
 	ReleaseDC(hWnd, hdc);
+}
+
+void load_texture(std::string filename, const std::string suffix, TGAImage& img)
+{
+	size_t dot = filename.find_last_of(".");
+	if (dot == std::string::npos) return;
+	std::string texfile = filename.substr(0, dot) + suffix;
+	std::cerr << "texture file " << texfile << " loading " << (img.read_tga_file(texfile.c_str()) ? "ok" : "failed") <<
+		std::endl;
 }

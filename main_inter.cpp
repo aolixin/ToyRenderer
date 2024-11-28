@@ -1,4 +1,4 @@
-#if false
+#if true
 #include <windows.h>
 #include <chrono>
 
@@ -17,12 +17,12 @@ constexpr int HEIGHT = 600;
 constexpr bool MSAA_ENABLE = false;
 
 //Camera camera({2, 3, 4}, {0, 0, 0}, {0, 1, 0});
-Camera camera({ 0, 0, 3 }, { 0, 0, 0 }, { 0, 1, 0 });
+Camera camera({3, 0, -1}, {0, 0, 0}, {0, 1, 0});
 
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
-	_In_ LPSTR lpCmdLine, _In_ int nShowCmd)
+                   _In_ LPSTR lpCmdLine, _In_ int nShowCmd)
 {
-	WNDCLASSEX wcex = { 0 };
+	WNDCLASSEX wcex = {0};
 	wcex.cbSize = sizeof(WNDCLASSEX);
 	wcex.style = CS_HREDRAW | CS_VREDRAW;
 	wcex.lpfnWndProc = WndProc;
@@ -35,9 +35,9 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	if (!RegisterClassEx(&wcex))
 	{
 		MessageBox(NULL,
-			L"Call to RegisterClassEx failed!",
-			L"Win32 Guided Tour",
-			NULL);
+		           L"Call to RegisterClassEx failed!",
+		           L"Win32 Guided Tour",
+		           NULL);
 
 		return 1;
 	}
@@ -57,9 +57,9 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	if (!hWnd)
 	{
 		MessageBox(NULL,
-			L"Call to CreateWindow failed!",
-			L"Win32 Guided Tour",
-			NULL);
+		           L"Call to CreateWindow failed!",
+		           L"Win32 Guided Tour",
+		           NULL);
 
 		return 1;
 	}
@@ -68,30 +68,6 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	ShowWindow(hWnd, nShowCmd);
 	UpdateWindow(hWnd);
 
-	// build mesh
-
-	Model model("res/diablo3_pose/diablo3_pose.obj");
-	Mesh mesh;
-
-	int face_num = model.nfaces();
-	mesh.vertices.reserve(face_num * 3);
-	mesh.indices.reserve(face_num * 3);
-
-	for (int i = 0; i < face_num; i++)
-	{
-		for (int j = 0; j < 3; j++)
-		{
-			Vertex v;
-			v.pos = model.vert(i, j);
-			v.normal = model.normal(i, j);
-			v.uv = model.uv(i, j);
-			mesh.vertices.push_back(v);
-		}
-		// .obj 三角形是顺时针, 构建mesh时改成逆时针
-		mesh.indices.push_back(i * 3);
-		mesh.indices.push_back(i * 3 + 2);
-		mesh.indices.push_back(i * 3 + 1);
-	}
 
 	// fps calculate
 	std::chrono::steady_clock::time_point frame_start;
@@ -109,84 +85,26 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	constexpr float aspect = (float)WIDTH / HEIGHT;
 	constexpr float zn = 1.0f;
 	constexpr float zf = 500.0f;
-	Vec3f light_dir = { -1, -1, 1 };
+	Vec3f light_dir = {-1, -1, 1};
 
-	// shader definition
-	auto vert_gouraud_tex = [&](int index, ShaderContext& output) -> Vec4f
-		{
-			Vec4f pos = mesh.vertices[index].pos.xyz1() * mat_mvp;
-			Vec3f pos_world = (mesh.vertices[index].pos.xyz1() * mat_model).xyz();
-			Vec3f eye_dir = camera.pos - pos_world;
-			output.varying_vec2f[VARYING_UV] = mesh.vertices[index].uv;
-			output.varying_vec3f[VARYING_EYE] = eye_dir;
-			return pos;
-		};
+	TGAImage awesomeface;
 
-	auto frag_gouraud_tex = [&](ShaderContext& input) -> Vec4f
-		{
-			Vec2f uv = input.varying_vec2f[VARYING_UV];
-
-			Vec3f eye_dir = input.varying_vec3f[VARYING_EYE];
-
-			Vec3f l = vector_normalize(light_dir);
-
-			Vec3f n = (model.normal(uv).xyz1() * mat_model_it).xyz();
-
-			float s = model.Specular(uv);
-
-			Vec3f r = vector_normalize(n * vector_dot(n, l) * 2.0f - l);
-
-			float p = Saturate(vector_dot(r, eye_dir));
-			float spec = Saturate(pow(p, s * 20) * 0.05);
-
-			float intense = Saturate(vector_dot(n, l)) + 0.2f + spec;
-			Vec4f color = model.Diffuse(uv);
-			return color * intense;
-		};
-
-	auto vert_normal_plane = [&](int index, ShaderContext& output) -> Vec4f
-		{
-			Vec4f pos = plane_mesh.vertices[index].pos.xyz1() * mat_mvp;
-			output.varying_vec2f[VARYING_TEXUV] = plane_mesh.vertices[index].uv;
-			output.varying_vec4f[VARYING_COLOR] = plane_mesh.vertices[index].color.xyz1();
-			Vec3f normal = plane_mesh.vertices[index].normal;
-
-			return pos;
-		};
-
-	auto frag_normal_plane = [&](ShaderContext& vert_input) -> Vec4f
-		{
-			return vert_input.varying_vec4f[VARYING_COLOR];
-		};
-
-	auto vert_normal_cube = [&](int index, ShaderContext& output) -> Vec4f
-		{
-			Vec4f pos = cube_mesh.vertices[index].pos.xyz1() * mat_mvp;
-			output.varying_vec2f[VARYING_TEXUV] = cube_mesh.vertices[index].uv;
-			output.varying_vec4f[VARYING_COLOR] = cube_mesh.vertices[index].color.xyz1();
-			Vec3f normal = cube_mesh.vertices[index].normal;
-
-			return pos;
-		};
-
-	auto frag_normal_cube = [&](ShaderContext& vert_input) -> Vec4f
-		{
-			return vert_input.varying_vec4f[VARYING_COLOR];
-		};
+	if (!awesomeface.read_tga_file("res/awesomeface.tga"))return 0;
 
 	auto vert_tex = [&](int index, ShaderContext& output) -> Vec4f
-		{
-			Vec4f pos = plane_mesh.vertices[index].pos.xyz1() * mat_mvp;
-			output.varying_vec2f[VARYING_TEXUV] = cube_mesh.vertices[index].uv;
+	{
+		Vec4f pos = plane_mesh2.vertices[index].pos.xyz1() * mat_mvp;
+		output.varying_vec2f[VARYING_TEXUV] = plane_mesh2.vertices[index].uv;
 
-			return pos;
-		};
+		return pos;
+	};
 
 	auto frag_tex = [&](ShaderContext& vert_input) -> Vec4f
-		{
-			Vec2f uv = vert_input.varying_vec2f[VARYING_TEXUV];
-			return model.normal(uv).xyz1();
-		};
+	{
+		//return white_color.xyz1();
+		Vec2f uv = vert_input.varying_vec2f[VARYING_TEXUV];
+		return vector_from_color(awesomeface.sample2D_uint32_t(uv));
+	};
 
 	// renderer init
 	Render render(WIDTH, HEIGHT);
@@ -229,7 +147,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 			mat_model = matrix_set_identity();
 			mat_model_it = matrix_invert(mat_model).Transpose();
 			mat_mvp = mat_model * mat_view * mat_proj;
-			render.drawCall(mesh, vert_gouraud_tex, frag_gouraud_tex);
+			render.drawCall(plane_mesh2, vert_tex, frag_tex);
 
 			//mat_model = matrix_set_identity();
 			//mat_model_it = matrix_invert(mat_model).Transpose();

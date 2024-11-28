@@ -21,12 +21,12 @@ struct TGAHeader
 };
 #pragma pack(pop)
 
-struct TGAColor
-{
-	std::uint8_t bgra[4] = {0, 0, 0, 0};
-	std::uint8_t bytespp = 4;
-	std::uint8_t& operator[](const int i) { return bgra[i]; }
-};
+//struct TGAColor
+//{
+//	std::uint8_t bgra[4] = {0, 0, 0, 0};
+//	std::uint8_t bytespp = 4;
+//	std::uint8_t& operator[](const int i) { return bgra[i]; }
+//};
 
 struct TGAImage
 {
@@ -354,6 +354,7 @@ TGAColor TGAImage::sample2D(Vec2f& uvf)
 
 std::uint32_t TGAImage::sample2D_uint32_t(Vec2f& uvf)
 {
+	//return get_uint32_t(uvf[0] * width(), uvf[1] * height());
 	return SampleBilinear(uvf[0] * width(), uvf[1] * height());
 }
 
@@ -405,3 +406,5 @@ std::uint32_t TGAImage::BilinearInterp(uint32_t tl, uint32_t tr, uint32_t bl, ui
 	r |= f & 0xff000000;
 	return r;
 }
+
+

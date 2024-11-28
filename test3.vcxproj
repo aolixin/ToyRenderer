@@ -127,6 +127,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="main_inter.cpp" />
     <ClCompile Include="main_nomsaa.cpp" />
     <ClCompile Include="main_msaa.cpp" />
   </ItemGroup>
