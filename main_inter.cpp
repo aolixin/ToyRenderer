@@ -20,7 +20,7 @@ constexpr int HEIGHT = 720;
 constexpr bool MSAA_ENABLE = false;
 
 //Camera camera({2, 3, 4}, {0, 0, 0}, {0, 1, 0});
-Camera camera({0, 0, -3}, {0, 0, 0}, {0, 1, 0});
+Camera camera({0, 0, -1}, {0, 0, 0}, {0, 1, 0});
 
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
                    _In_ LPSTR lpCmdLine, _In_ int nShowCmd)
@@ -92,10 +92,10 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 
 	TGA::TGAImage awesomeface;
 
-	std::string file_path = "res/awesomeface.tga";
+	std::string file_path = "res/test.tga";
 	std::string file_path2 = "res/container.tga";
 
-	if (!awesomeface.read_tga_file(file_path2))return 0;
+	if (!awesomeface.read_tga_file(file_path))return 0;
 
 	auto vert_tex = [&](int index, ShaderContext& output) -> Vec4f
 	{

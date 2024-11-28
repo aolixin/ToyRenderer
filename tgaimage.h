@@ -348,9 +348,9 @@ namespace TGA
 
 	std::uint32_t TGAImage::sample2D(const Vec2f& uvf) const
 	{
-		return get(uvf.x * w, uvf.y * h);
-		//return SampleBilinear(uvf.x * w, uvf.y * h);
-		return SampleBicubic(uvf.x * w, uvf.y * h);
+		//return get(uvf.x * w, uvf.y * h);
+		return SampleBilinear(uvf.x * w, uvf.y * h);
+		//return SampleBicubic(uvf.x * w, uvf.y * h);
 	}
 
 
@@ -460,7 +460,7 @@ namespace TGA
 	// 三次插值权重函数
 	float TGAImage::CubicWeight(float x)
 	{
-		/*float abs_x = abs(x);
+		float abs_x = abs(x);
 		float a = -0.5;
 		if (abs_x <= 1.0)
 		{
@@ -471,18 +471,18 @@ namespace TGA
 			return a * pow(abs_x, 3) - 5 * a * pow(abs_x, 2) + 8 * a * abs_x - 4 * a;
 		}
 		else
-			return 0.0;*/
-
-		float abs_x = abs(x);
-		if (abs_x < 1.0)
-		{
-			return 1 - 2 * abs_x * abs_x + abs_x * abs_x * abs_x;
-		}
-		else if (abs_x < 2.0)
-		{
-			return 4 - 8 * abs_x + 5 * abs_x * abs_x - abs_x * abs_x * abs_x;
-		}
-		else
 			return 0.0;
+
+		//float abs_x = abs(x);
+		//if (abs_x < 1.0)
+		//{
+		//	return 1 - 2 * abs_x * abs_x + abs_x * abs_x * abs_x;
+		//}
+		//else if (abs_x < 2.0)
+		//{
+		//	return 4 - 8 * abs_x + 5 * abs_x * abs_x - abs_x * abs_x * abs_x;
+		//}
+		//else
+		//	return 0.0;
 	}
 }
