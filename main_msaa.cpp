@@ -189,7 +189,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 
 	// renderer init
 	Render render(WIDTH, HEIGHT);
-	render.initRenderer(hWnd);
+	render.init_renderer(hWnd);
 	render.msaa_enable(MSAA_ENABLE);
 
 	// create frame buffer
@@ -212,7 +212,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 		{
 			frame_start = std::chrono::steady_clock::now();
 			// clear buffer
-			render.clearBuffer();
+			render.clear_buffer();
 
 			mat_view = matrix_set_lookat(camera.pos, camera.target, camera.up);
 			mat_proj = matrix_set_perspective(fovy, aspect, zn, zf);
@@ -222,17 +222,17 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 			//mat_model = matrix_set_identity();
 			//mat_model_it = matrix_invert(mat_model).Transpose();
 			//mat_mvp = mat_model * mat_view * mat_proj;
-			//render.drawCall(mesh, vert_gouraud_tex, frag_gouraud_tex);
+			//render.drawcall(mesh, vert_gouraud_tex, frag_gouraud_tex);
 
 			// draw cube
 			mat_model = matrix_set_identity();
 			mat_model_it = matrix_invert(mat_model).Transpose();
 			mat_mvp = mat_model * mat_view * mat_proj;
-			render.drawCall(cube_mesh, vert_normal_cube, frag_normal_cube);
+			render.drawcall(cube_mesh, vert_normal_cube, frag_normal_cube);
 
 			// Resolve msaa
 			if (MSAA_ENABLE)
-				render.ResolvePixel();
+				render.resolve_pixel();
 
 			// swap buffer
 			render.update(hWnd);
@@ -246,7 +246,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 		}
 	}
 
-	render.shutDown();
+	render.shutdown();
 	return static_cast<int>(msg.wParam);
 }
 

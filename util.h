@@ -7,7 +7,7 @@
 
 constexpr float PI = 3.1415926;
 
-Mesh createSphere(float radius, int slices, int stacks)
+Mesh create_sphere(float radius, int slices, int stacks)
 {
 	std::vector<Vertex> vertices;
 	std::vector<int> indices;

@@ -57,28 +57,28 @@ public:
 		g_height = h;
 	}
 
-	inline void initRenderer(HWND hWnd);
+	inline void init_renderer(HWND hWnd);
 	inline void update(HWND hWnd);
-	inline void clearBuffer();
-	inline void shutDown();
+	inline void clear_buffer();
+	inline void shutdown();
 
-	inline void drawCall(const Mesh& mesh, const VertexShader& vert, const FragmentShader& frag);
-	inline void drawCall_ortho(const Mesh& mesh, const VertexShader& vert, const FragmentShader& frag);
+	inline void drawcall(const Mesh& mesh, const VertexShader& vert, const FragmentShader& frag);
+	inline void drawcall_ortho(const Mesh& mesh, const VertexShader& vert, const FragmentShader& frag);
 
-	inline void drawPrimitive(const std::vector<int>&, const Mesh&, const VertexShader&, const FragmentShader&);
-	inline void drawPrimitive_ortho(const std::vector<int>& indices2draw, const Mesh& mesh,
+	inline void draw_primitive(const std::vector<int>&, const Mesh&, const VertexShader&, const FragmentShader&);
+	inline void draw_Primitive_ortho(const std::vector<int>& indices2draw, const Mesh& mesh,
 	                                const VertexShader& vert_shader,
 	                                const FragmentShader& frag_shader);
 
 	inline bool primitive_assembly(const std::vector<int>&, const Mesh&, const VertexShader&);
 
-	inline void drawLineDDA(int x1, int y1, int x2, int y2, uint32_t color);
-	inline void drawLineBresenham(int x1, int y1, int x2, int y2, uint32_t color);
+	inline void draw_lineDDA(int x1, int y1, int x2, int y2, uint32_t color);
+	inline void draw_lineBresenham(int x1, int y1, int x2, int y2, uint32_t color);
 
 
-	inline void drawPixel(int x, int y, uint32_t color);
-	inline void drawMsaaPixel(int, int, const Vec4f&);
-	inline void ResolvePixel();
+	inline void draw_pixel(int x, int y, uint32_t color);
+	inline void draw_pixel_msaa(int, int, const Vec4f&);
+	inline void resolve_pixel();
 
 	inline int create_frame_buffer(int, int);
 	inline int create_depth_buffer(int, int);
@@ -99,7 +99,7 @@ public:
 int Render::id = 0;
 
 
-void Render::initRenderer(HWND hWnd)
+void Render::init_renderer(HWND hWnd)
 {
 	id_depth_buffer.clear();
 	id_frame_buffer.clear();
@@ -213,7 +213,7 @@ void Render::set_depth_buffer(int switch_id)
 }
 
 
-void Render::drawPixel(int x, int y, uint32_t color)
+void Render::draw_pixel(int x, int y, uint32_t color)
 {
 	if (x < 0 || x >= g_width || y < 0 || y >= g_height) return;
 	auto& g_frameBuff = id_frame_buffer[this->target_frame_buffer_id];
@@ -221,7 +221,7 @@ void Render::drawPixel(int x, int y, uint32_t color)
 	g_frameBuff[idx] = color;
 }
 
-void Render::drawMsaaPixel(int x, int y, const Vec4f& color)
+void Render::draw_pixel_msaa(int x, int y, const Vec4f& color)
 {
 	if (x < 0 || x >= g_width || y < 0 || y >= g_height) return;
 	auto& g_msaa_frame = id_msaa_frame_buffer[this->target_frame_buffer_id];
@@ -234,7 +234,7 @@ void Render::drawMsaaPixel(int x, int y, const Vec4f& color)
 	}
 }
 
-void Render::ResolvePixel()
+void Render::resolve_pixel()
 {
 	auto& g_frameBuff = id_frame_buffer[this->target_frame_buffer_id];
 	auto& g_msaa_frame = id_msaa_frame_buffer[this->target_frame_buffer_id];
@@ -270,7 +270,7 @@ void Render::update(HWND hWnd)
 	ReleaseDC(hWnd, hDC);
 }
 
-void Render::clearBuffer()
+void Render::clear_buffer()
 {
 	auto& g_frameBuff = id_frame_buffer[this->target_frame_buffer_id];
 	auto& g_depthBuff = id_depth_buffer[this->target_depth_buffer_id];
@@ -300,7 +300,7 @@ void Render::clearBuffer()
 	}
 }
 
-void Render::shutDown()
+void Render::shutdown()
 {
 	// 释放资源
 	if (g_tempDC)
@@ -329,7 +329,7 @@ void Render::shutDown()
 	id_depth_buffer.clear();
 }
 
-void Render::drawCall(const Mesh& mesh, const VertexShader& vert, const FragmentShader& frag)
+void Render::drawcall(const Mesh& mesh, const VertexShader& vert, const FragmentShader& frag)
 {
 	this->vertices = mesh.vertices;
 	this->indices = mesh.indices;
@@ -340,11 +340,11 @@ void Render::drawCall(const Mesh& mesh, const VertexShader& vert, const Fragment
 		auto i0 = mesh.indices[i];
 		auto i1 = mesh.indices[i + 1];
 		auto i2 = mesh.indices[i + 2];
-		drawPrimitive({i0, i1, i2}, mesh, vert, frag);
+		draw_primitive({i0, i1, i2}, mesh, vert, frag);
 	}
 }
 
-void Render::drawPrimitive(const std::vector<int>& indices2draw, const Mesh& mesh, const VertexShader& vert_shader,
+void Render::draw_primitive(const std::vector<int>& indices2draw, const Mesh& mesh, const VertexShader& vert_shader,
                            const FragmentShader& frag_shader)
 {
 	// 逐顶点操作 和 图元装配
@@ -416,11 +416,11 @@ void Render::drawPrimitive(const std::vector<int>& indices2draw, const Mesh& mes
 				auto color = frag_shader(frag_input);
 				if (_msaa_enable)
 				{
-					drawMsaaPixel(quad_x + i % quad_size, quad_y + i / quad_size, color);
+					draw_pixel_msaa(quad_x + i % quad_size, quad_y + i / quad_size, color);
 				}
 				else
 				{
-					drawPixel(quad_x + i % quad_size, quad_y + i / quad_size, vector_to_color(color));
+					draw_pixel(quad_x + i % quad_size, quad_y + i / quad_size, vector_to_color(color));
 				}
 			}
 		}
@@ -428,11 +428,11 @@ void Render::drawPrimitive(const std::vector<int>& indices2draw, const Mesh& mes
 
 
 	// 3. 绘制三角形边框
-	//drawLineBresenham(g_vertexAttr[0].spi.x, g_vertexAttr[0].spi.y, g_vertexAttr[1].spi.x, g_vertexAttr[1].spi.y,
+	//draw_lineBresenham(g_vertexAttr[0].spi.x, g_vertexAttr[0].spi.y, g_vertexAttr[1].spi.x, g_vertexAttr[1].spi.y,
 	//                  0x000000);
-	//drawLineBresenham(g_vertexAttr[1].spi.x, g_vertexAttr[1].spi.y, g_vertexAttr[2].spi.x, g_vertexAttr[2].spi.y,
+	//draw_lineBresenham(g_vertexAttr[1].spi.x, g_vertexAttr[1].spi.y, g_vertexAttr[2].spi.x, g_vertexAttr[2].spi.y,
 	//                  0x000000);
-	//drawLineBresenham(g_vertexAttr[2].spi.x, g_vertexAttr[2].spi.y, g_vertexAttr[0].spi.x, g_vertexAttr[0].spi.y,
+	//draw_lineBresenham(g_vertexAttr[2].spi.x, g_vertexAttr[2].spi.y, g_vertexAttr[0].spi.x, g_vertexAttr[0].spi.y,
 	//                  0x000000);
 }
 
@@ -707,7 +707,7 @@ void Render::pixel_interpolation_msaa(const Vec2f& f0, const Vec2f& f1, const Ve
 }
 
 
-void Render::drawCall_ortho(const Mesh& mesh, const VertexShader& vert, const FragmentShader& frag)
+void Render::drawcall_ortho(const Mesh& mesh, const VertexShader& vert, const FragmentShader& frag)
 {
 	this->vertices = mesh.vertices;
 	this->indices = mesh.indices;
@@ -718,11 +718,11 @@ void Render::drawCall_ortho(const Mesh& mesh, const VertexShader& vert, const Fr
 		auto i0 = mesh.indices[i];
 		auto i1 = mesh.indices[i + 1];
 		auto i2 = mesh.indices[i + 2];
-		drawPrimitive({i0, i1, i2}, mesh, vert, frag);
+		draw_primitive({i0, i1, i2}, mesh, vert, frag);
 	}
 }
 
-void Render::drawPrimitive_ortho(const std::vector<int>& indices2draw, const Mesh& mesh,
+void Render::draw_Primitive_ortho(const std::vector<int>& indices2draw, const Mesh& mesh,
                                  const VertexShader& vert_shader,
                                  const FragmentShader& frag_shader)
 {
@@ -889,20 +889,20 @@ void Render::drawPrimitive_ortho(const std::vector<int>& indices2draw, const Mes
 			color = frag_shader(frag_input);
 
 			auto color32 = vector_to_color(color);
-			drawPixel(cx, cy, color32);
+			draw_pixel(cx, cy, color32);
 		}
 	}
 
 	// 3. 绘制三角形边框
-	//drawLineBresenham(g_vertexAttr[0].spi.x, g_vertexAttr[0].spi.y, g_vertexAttr[1].spi.x, g_vertexAttr[1].spi.y,
+	//draw_lineBresenham(g_vertexAttr[0].spi.x, g_vertexAttr[0].spi.y, g_vertexAttr[1].spi.x, g_vertexAttr[1].spi.y,
 	//                  0x000000);
-	//drawLineBresenham(g_vertexAttr[1].spi.x, g_vertexAttr[1].spi.y, g_vertexAttr[2].spi.x, g_vertexAttr[2].spi.y,
+	//draw_lineBresenham(g_vertexAttr[1].spi.x, g_vertexAttr[1].spi.y, g_vertexAttr[2].spi.x, g_vertexAttr[2].spi.y,
 	//                  0x000000);
-	//drawLineBresenham(g_vertexAttr[2].spi.x, g_vertexAttr[2].spi.y, g_vertexAttr[0].spi.x, g_vertexAttr[0].spi.y,
+	//draw_lineBresenham(g_vertexAttr[2].spi.x, g_vertexAttr[2].spi.y, g_vertexAttr[0].spi.x, g_vertexAttr[0].spi.y,
 	//                  0x000000);
 }
 
-void Render::drawLineDDA(int x1, int y1, int x2, int y2, uint32_t color)
+void Render::draw_lineDDA(int x1, int y1, int x2, int y2, uint32_t color)
 {
 	double dx = x2 - x1;
 	double dy = y2 - y1;
@@ -911,28 +911,28 @@ void Render::drawLineDDA(int x1, int y1, int x2, int y2, uint32_t color)
 	for (int x = x1; x < x2; x++)
 	{
 		int y = k * (x - x1) + y1;
-		drawPixel(x, y, color);
+		draw_pixel(x, y, color);
 	}
 }
 
 
-void Render::drawLineBresenham(int x1, int y1, int x2, int y2, uint32_t color)
+void Render::draw_lineBresenham(int x1, int y1, int x2, int y2, uint32_t color)
 {
 	if (x1 == x2 && y1 == y2)
 	{
-		drawPixel(x1, y1, color);
+		draw_pixel(x1, y1, color);
 	}
 	else if (x1 == x2)
 	{
 		if (y1 > y2) std::swap(y1, y2);
 		for (int y = y1; y <= y2; ++y)
-			drawPixel(x1, y, color);
+			draw_pixel(x1, y, color);
 	}
 	else if (y1 == y2)
 	{
 		if (x1 > x2) std::swap(x1, x2);
 		for (int x = x1; x <= x2; ++x)
-			drawPixel(x, y1, color);
+			draw_pixel(x, y1, color);
 	}
 	else
 	{
@@ -945,7 +945,7 @@ void Render::drawLineBresenham(int x1, int y1, int x2, int y2, uint32_t color)
 			if (x1 > x2) std::swap(x1, x2), std::swap(y1, y2);
 			for (int x = x1, y = y1; x < x2; ++x)
 			{
-				drawPixel(x, y, color);
+				draw_pixel(x, y, color);
 				diff += dy;
 				if (diff >= dx)
 				{
@@ -953,14 +953,14 @@ void Render::drawLineBresenham(int x1, int y1, int x2, int y2, uint32_t color)
 					y += (y1 < y2) ? 1 : -1;
 				}
 			}
-			drawPixel(x2, y2, color);
+			draw_pixel(x2, y2, color);
 		}
 		else
 		{
 			if (y1 > y2) std::swap(x1, x2), std::swap(y1, y2);
 			for (int y = y1, x = x1; y < y2; ++y)
 			{
-				drawPixel(x, y, color);
+				draw_pixel(x, y, color);
 				diff += dx;
 				if (diff >= dy)
 				{
@@ -968,7 +968,7 @@ void Render::drawLineBresenham(int x1, int y1, int x2, int y2, uint32_t color)
 					x += (x1 < x2) ? 1 : -1;
 				}
 			}
-			drawPixel(x2, y2, color);
+			draw_pixel(x2, y2, color);
 		}
 	}
 }
