@@ -1,4 +1,4 @@
-#if false
+#if true	
 #include <windows.h>
 #include <chrono>
 
@@ -150,7 +150,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 			// show mipmap
 			float scale = 4;
 			float dis = 0;
-			/*for (int i = 0; i < mip_level; i++)
+			for (int i = 0; i < mip_level; i++)
 			{
 				sample_mip_level = i;
 				mat_model = matrix_set_scale(scale, scale, 1) * matrix_set_translate(dis, 0, 0);
@@ -158,19 +158,19 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 				mat_mvp = mat_model * mat_view * mat_proj;
 				render.drawCall(plane_mesh2, vert_tex, frag_tex);
 				dis += scale;
-				scale /= 2;
+				//scale /= 2;
 				dis += scale;
 
-			}*/
+			}
 
 			// draw plane
 
-			sample_mip_level = 1;
+			//sample_mip_level = 1;
 			//mat_model = matrix_set_scale(scale, scale, 1);
-			mat_model = matrix_set_identity();
-			mat_model_it = matrix_invert(mat_model).Transpose();
-			mat_mvp = mat_model * mat_view * mat_proj;
-			render.drawCall(plane_mesh2, vert_tex, frag_tex);
+			//mat_model = matrix_set_identity();
+			//mat_model_it = matrix_invert(mat_model).Transpose();
+			//mat_mvp = mat_model * mat_view * mat_proj;
+			//render.drawCall(plane_mesh2, vert_tex, frag_tex);
 
 			// Resolve msaa
 			if (MSAA_ENABLE)

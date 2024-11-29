@@ -77,6 +77,7 @@ public:
 
 
 	inline void drawPixel(int x, int y, uint32_t color);
+	inline void drawMsaaPixel(int, int, const Vec4f&);
 	inline void ResolvePixel();
 
 	inline int create_frame_buffer(int, int);
@@ -88,8 +89,10 @@ public:
 	inline void msaa_enable(bool enable);
 
 	inline bool inTriangle(const Vec2f&, const Vec2f&, const Vec2f&, const float&, const float&);
-	inline void rasterization_interpolation(const Vec2f&, const Vec2f&, const Vec2f&, int, int,
-	                                        ShaderContext& frag_input);
+	inline void pixel_interpolation(const Vec2f&, const Vec2f&, const Vec2f&, int, int,
+	                                ShaderContext& frag_input);
+	inline void pixel_interpolation_msaa(const Vec2f& f0, const Vec2f& f1, const Vec2f& f2, int cx, int cy,
+	                                     ShaderContext& frag_input);
 };
 
 // 初始化 id
@@ -212,11 +215,23 @@ void Render::set_depth_buffer(int switch_id)
 
 void Render::drawPixel(int x, int y, uint32_t color)
 {
-	auto& g_frameBuff = id_frame_buffer[this->target_frame_buffer_id];
 	if (x < 0 || x >= g_width || y < 0 || y >= g_height) return;
-
+	auto& g_frameBuff = id_frame_buffer[this->target_frame_buffer_id];
 	int idx = y * g_width + x;
 	g_frameBuff[idx] = color;
+}
+
+void Render::drawMsaaPixel(int x, int y, const Vec4f& color)
+{
+	if (x < 0 || x >= g_width || y < 0 || y >= g_height) return;
+	auto& g_msaa_frame = id_msaa_frame_buffer[this->target_frame_buffer_id];
+	auto& g_coverage_mask = id_coverage_mask[this->target_frame_buffer_id];
+	int idx = y * g_width + x;
+	for (int i = 0; i < MULTISAPLE; i++)
+	{
+		if (g_coverage_mask[idx][i])
+			g_msaa_frame[idx][i] = color;
+	}
 }
 
 void Render::ResolvePixel()
@@ -351,9 +366,6 @@ void Render::drawPrimitive(const std::vector<int>& indices2draw, const Mesh& mes
 	}
 
 	// 光栅化
-	//const Vec2i& p0 = g_vertexAttr[0].spi;
-	//const Vec2i& p1 = g_vertexAttr[1].spi;
-	//const Vec2i& p2 = g_vertexAttr[2].spi;
 
 	const Vec2f& f0 = g_vertexAttr[0].spf;
 	const Vec2f& f1 = g_vertexAttr[1].spf;
@@ -364,16 +376,27 @@ void Render::drawPrimitive(const std::vector<int>& indices2draw, const Mesh& mes
 		for (int quad_x = _min_x; quad_x <= _max_x; quad_x += quad_size)
 		{
 			// 插值
-			rasterization_interpolation(f0, f1, f2, quad_x, quad_y, quad_shader_context[0]);
-			rasterization_interpolation(f0, f1, f2, quad_x + 1, quad_y, quad_shader_context[1]);
-			rasterization_interpolation(f0, f1, f2, quad_x, quad_y + 1, quad_shader_context[2]);
-			rasterization_interpolation(f0, f1, f2, quad_x + 1, quad_y + 1, quad_shader_context[3]);
+			if (_msaa_enable)
+			{
+				pixel_interpolation_msaa(f0, f1, f2, quad_x, quad_y, quad_shader_context[0]);
+				pixel_interpolation_msaa(f0, f1, f2, quad_x + 1, quad_y, quad_shader_context[1]);
+				pixel_interpolation_msaa(f0, f1, f2, quad_x, quad_y + 1, quad_shader_context[2]);
+				pixel_interpolation_msaa(f0, f1, f2, quad_x + 1, quad_y + 1, quad_shader_context[3]);
+			}
+			else
+			{
+				pixel_interpolation(f0, f1, f2, quad_x, quad_y, quad_shader_context[0]);
+				pixel_interpolation(f0, f1, f2, quad_x + 1, quad_y, quad_shader_context[1]);
+				pixel_interpolation(f0, f1, f2, quad_x, quad_y + 1, quad_shader_context[2]);
+				pixel_interpolation(f0, f1, f2, quad_x + 1, quad_y + 1, quad_shader_context[3]);
+			}
 
-			bool inside = quad_shader_context[0].inside ||
-				quad_shader_context[1].inside ||
-				quad_shader_context[2].inside ||
-				quad_shader_context[3].inside;
-			if (!inside)continue;
+
+			bool pass = quad_shader_context[0].pass_all ||
+				quad_shader_context[1].pass_all ||
+				quad_shader_context[2].pass_all ||
+				quad_shader_context[3].pass_all;
+			if (!pass)continue;
 
 			// quad uv
 			quad_uv[0] = quad_shader_context[0].varying_vec2f[VARYING_TEXUV];
@@ -387,11 +410,18 @@ void Render::drawPrimitive(const std::vector<int>& indices2draw, const Mesh& mes
 			for (int i = 0; i < quad_size * quad_size; i++)
 			{
 				auto& frag_input = quad_shader_context[i];
-				if (!frag_input.inside)continue;
+				if (!frag_input.pass_all)continue;
 
-				//frag_input.varying_vec2f[VARYING_DUDV] = Vec2f{du, dv};
+				frag_input.varying_vec2f[VARYING_DUDV] = Vec2f{du, dv};
 				auto color = frag_shader(frag_input);
-				drawPixel(quad_x + i % quad_size, quad_y + i / quad_size, vector_to_color(color));
+				if (_msaa_enable)
+				{
+					drawMsaaPixel(quad_x + i % quad_size, quad_y + i / quad_size, color);
+				}
+				else
+				{
+					drawPixel(quad_x + i % quad_size, quad_y + i / quad_size, vector_to_color(color));
+				}
 			}
 		}
 	}
@@ -457,17 +487,14 @@ bool Render::primitive_assembly(const std::vector<int>& indices2draw, const Mesh
 	return true;
 }
 
-void Render::rasterization_interpolation(const Vec2f& f0, const Vec2f& f1, const Vec2f& f2, int cx, int cy,
-                                         ShaderContext& frag_input)
+void Render::pixel_interpolation(const Vec2f& f0, const Vec2f& f1, const Vec2f& f2, int cx, int cy,
+                                 ShaderContext& frag_input)
 {
-	frag_input.Reset();
-
 	auto& target_depth = id_depth_buffer[this->target_depth_buffer_id];
 
-	if (!inTriangle(f0, f1, f2, cx + 0.5f, cy + 0.5f))
-	{
-		frag_input.inside = false;
-	}
+	frag_input.Reset();
+
+	frag_input.inside_triangle = inTriangle(f0, f1, f2, cx + 0.5f, cy + 0.5f);
 
 	Vec2f cxy = {(float)cx + 0.5f, (float)cy + 0.5f};
 
@@ -489,21 +516,19 @@ void Render::rasterization_interpolation(const Vec2f& f0, const Vec2f& f1, const
 	// 计算当前点的 1/w，因 1/w 和屏幕空间呈线性关系，故直接重心插值
 	float rhw = g_vertexAttr[0].pos.z * a + g_vertexAttr[1].pos.z * b + g_vertexAttr[2].pos.z * c;
 
-	if (cx < 0 || cx >= g_width || cy < 0 || cy >= g_height)
-	{
-		frag_input.inside = false;
-	}
-	else
+	if (cx >= 0 && cx < g_width && cy >= 0 && cy < g_height)
 	{
 		if (rhw < target_depth[cy * g_width + cx])
 		{
-			frag_input.inside = false;
+			frag_input.pass_depth_test = false;
 		}
-		else if (frag_input.inside)
+		if (frag_input.inside_triangle)
 		{
 			target_depth[cy * g_width + cx] = rhw;
 		}
 	}
+
+	frag_input.pass_all = frag_input.pass_depth_test && frag_input.inside_triangle;
 
 
 	// 还原当前像素的 w
@@ -514,11 +539,136 @@ void Render::rasterization_interpolation(const Vec2f& f0, const Vec2f& f1, const
 	float c1 = g_vertexAttr[1].pos.z * b * w;
 	float c2 = g_vertexAttr[2].pos.z * c * w;
 
+	ShaderContext& con0 = g_vertexAttr[0].context;
+	ShaderContext& con1 = g_vertexAttr[1].context;
+	ShaderContext& con2 = g_vertexAttr[2].context;
+
+	// 插值
+	for (const auto& it : con0.varying_float)
+	{
+		int key = it.first;
+		float f0 = con0.varying_float[key];
+		float f1 = con1.varying_float[key];
+		float f2 = con2.varying_float[key];
+		frag_input.varying_float[key] = c0 * f0 + c1 * f1 + c2 * f2;
+	}
+
+	for (const auto& it : con0.varying_vec2f)
+	{
+		int key = it.first;
+		const auto& f0 = con0.varying_vec2f[key];
+		const auto& f1 = con1.varying_vec2f[key];
+		const auto& f2 = con2.varying_vec2f[key];
+		frag_input.varying_vec2f[key] = c0 * f0 + c1 * f1 + c2 * f2;
+	}
+
+	for (const auto& it : con0.varying_vec3f)
+	{
+		int key = it.first;
+		const auto& f0 = con0.varying_vec3f[key];
+		const auto& f1 = con1.varying_vec3f[key];
+		const auto& f2 = con2.varying_vec3f[key];
+		frag_input.varying_vec3f[key] = c0 * f0 + c1 * f1 + c2 * f2;
+	}
+
+	for (const auto& it : con0.varying_vec4f)
+	{
+		int key = it.first;
+		const auto& f0 = con0.varying_vec4f[key];
+		const auto& f1 = con1.varying_vec4f[key];
+		const auto& f2 = con2.varying_vec4f[key];
+		frag_input.varying_vec4f[key] = c0 * f0 + c1 * f1 + c2 * f2;
+	}
+}
+
+void Render::pixel_interpolation_msaa(const Vec2f& f0, const Vec2f& f1, const Vec2f& f2, int cx, int cy,
+                                      ShaderContext& frag_input)
+{
+	auto& target_depth = id_depth_buffer[this->target_depth_buffer_id];
+	auto& target_msaa_depth = id_msaa_depth_buffer[this->target_depth_buffer_id];
+	auto& target_coverage_mask = id_coverage_mask[this->target_frame_buffer_id];
+
+	frag_input.Reset();
+
+	// msaa
+	int cnt = 0;
+	int row = (int)sqrt(MULTISAPLE);
+	int col = (int)sqrt(MULTISAPLE);
+	float step = 1.0f / (row + 1.0f);
+
+	int idx = cy * g_width + cx;
+	for (int j = 0; j < row; j++)
+	{
+		for (int i = 0; i < col; i++)
+		{
+			int sub_idx = j * col + i;
+			float fx = static_cast<float>(cx) + static_cast<float>(i + 1) * step;
+			float fy = static_cast<float>(cy) + static_cast<float>(j + 1) * step;
+			if (!inTriangle(f0, f1, f2, fx, fy))continue;
+
+			Vec2f cxy = {fx, fy};
+			Vec2f s0 = f0 - cxy;
+			Vec2f s1 = f1 - cxy;
+			Vec2f s2 = f2 - cxy;
+			float a = Abs(vector_cross(s1, s2));
+			float b = Abs(vector_cross(s2, s0));
+			float c = Abs(vector_cross(s0, s1));
+			float s = a + b + c;
+			if (s == 0.0f)continue;
+
+			a = a * (1.0f / s);
+			b = b * (1.0f / s);
+			c = c * (1.0f / s);
+			float rhw = g_vertexAttr[0].pos.z * a + g_vertexAttr[1].pos.z * b + g_vertexAttr[2].pos.z * c;
+			if (rhw < target_msaa_depth[idx][sub_idx])continue;
+
+			target_msaa_depth[idx][sub_idx] = rhw;
+			target_coverage_mask[idx][sub_idx] = true;
+			cnt++;
+		}
+	}
+
+	if (cnt == 0)
+	{
+		frag_input.inside_triangle = false;
+		frag_input.pass_depth_test = false;
+		frag_input.pass_all = false;
+	}
+
+
+	Vec2f cxy = {(float)cx + 0.5f, (float)cy + 0.5f};
+
+	Vec2f s0 = f0 - cxy;
+	Vec2f s1 = f1 - cxy;
+	Vec2f s2 = f2 - cxy;
+
+	float a = Abs(vector_cross(s1, s2));
+	float b = Abs(vector_cross(s2, s0));
+	float c = Abs(vector_cross(s0, s1));
+
+	float s = a + b + c;
+	if (s == 0.0f)return;
+
+	a = a * (1.0f / s);
+	b = b * (1.0f / s);
+	c = c * (1.0f / s);
+
+	// 计算当前点的 1/w，因 1/w 和屏幕空间呈线性关系，故直接重心插值
+	float rhw = g_vertexAttr[0].pos.z * a + g_vertexAttr[1].pos.z * b + g_vertexAttr[2].pos.z * c;
+
+	// 还原当前像素的 w
+	float w = 1.0f / ((rhw != 0.0f) ? rhw : 1.0f);
+
+	// 计算插值系数
+	float c0 = g_vertexAttr[0].pos.z * a * w;
+	float c1 = g_vertexAttr[1].pos.z * b * w;
+	float c2 = g_vertexAttr[2].pos.z * c * w;
 
 	ShaderContext& con0 = g_vertexAttr[0].context;
 	ShaderContext& con1 = g_vertexAttr[1].context;
 	ShaderContext& con2 = g_vertexAttr[2].context;
 
+	// 插值
 	for (const auto& it : con0.varying_float)
 	{
 		int key = it.first;
