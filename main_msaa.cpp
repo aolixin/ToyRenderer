@@ -1,4 +1,4 @@
-#if false	
+#if false		
 #include <windows.h>
 #include <chrono>
 
@@ -11,10 +11,8 @@
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-//constexpr int WIDTH = 800;
-//constexpr int HEIGHT = 600;
-constexpr int WIDTH = 1920;
-constexpr int HEIGHT = 1080;
+constexpr int WIDTH = 800;
+constexpr int HEIGHT = 600;
 constexpr bool MSAA_ENABLE = true;
 
 Camera camera({2, 3, 4}, {0, 0, 0}, {0, 1, 0});

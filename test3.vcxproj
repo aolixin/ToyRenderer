@@ -127,15 +127,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="main_inter.cpp" />
-    <ClCompile Include="main_nomsaa.cpp" />
+    <ClCompile Include="main_mipmap.cpp" />
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="main_msaa.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="AssModel.h" />
     <ClInclude Include="bitmap.h" />
     <ClInclude Include="bitmap_renderer.h" />
-    <ClInclude Include="brick.h" />
     <ClInclude Include="camera.h" />
     <ClInclude Include="color.h" />
     <ClInclude Include="gdi_renderer.h" />

@@ -1,4 +1,4 @@
-#if true	
+#if true
 #include <windows.h>
 #include <chrono>
 
@@ -11,17 +11,14 @@
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-//constexpr int WIDTH = 800;
-//constexpr int HEIGHT = 600;
-
-constexpr int WIDTH = 1080;
-constexpr int HEIGHT = 720;
+constexpr int WIDTH = 800;
+constexpr int HEIGHT = 600;
 
 constexpr bool MSAA_ENABLE = false;
 constexpr int mip_level = 6;
 
 //Camera camera({2, 3, 4}, {0, 0, 0}, {0, 1, 0});
-Camera camera({0, 0, -3}, {0, 0, 0}, {0, 1, 0});
+Camera camera({3, 1, -3}, {0, 0, 0}, {0, 1, 0});
 
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
                    _In_ LPSTR lpCmdLine, _In_ int nShowCmd)
@@ -85,35 +82,36 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	Mat4x4f mat_view;
 	Mat4x4f mat_proj;
 	Mat4x4f mat_mvp;
-	constexpr float fovy = 3.1415926f * 0.5f;
+	constexpr float fovy = 3.1415926f * 0.4f;
 	constexpr float aspect = (float)WIDTH / HEIGHT;
 	constexpr float zn = 1.0f;
 	constexpr float zf = 500.0f;
 	Vec3f light_dir = {-1, -1, 1};
 
 	TGA::TGAImage tga_image;
-	std::string file_path = "res/awesomeface.tga";
-	std::string file_path2 = "res/container.tga";
+	std::string file_path = "res/wall.tga";
 	if (!tga_image.read_tga_file(file_path))return 0;
 	tga_image.CreateMipMap(mip_level);
 
 	auto vert_tex = [&](int index, ShaderContext& output) -> Vec4f
 	{
-		Vec4f pos = plane_mesh2.vertices[index].pos.xyz1() * mat_mvp;
-		output.varying_vec2f[VARYING_TEXUV] = plane_mesh2.vertices[index].uv;
-
+		Vec4f pos = plane_mesh.vertices[index].pos.xyz1() * mat_mvp;
+		output.varying_vec2f[VARYING_TEXUV] = plane_mesh.vertices[index].uv;
 		return pos;
 	};
 
-	int sample_mip_level = 0;
 
 	auto frag_tex = [&](ShaderContext& vert_input) -> Vec4f
 	{
-		//float dx = 
-		//return white_color.xyz1();
 		Vec2f uv = vert_input.varying_vec2f[VARYING_TEXUV];
-		return vector_from_color(tga_image.sample_mipmap(uv,sample_mip_level));
-		//return vector_from_color(tga_image.sample2D(uv));
+		Vec2f dudv = vert_input.varying_vec2f[VARYING_DUDV];
+		Vec2f ddx = dudv * (float)WIDTH;
+		Vec2f ddy = dudv * (float)HEIGHT;
+
+		float L = max(vector_dot(ddx, ddx), vector_dot(ddy, ddy));
+		L = 0.5f * log2(sqrt(L));
+		L = Between(0.0f, (float)mip_level, L);
+		return vector_from_color(tga_image.sample_mipmap(uv, L));
 	};
 
 	// renderer init
@@ -148,29 +146,11 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 
 
 			// show mipmap
-			float scale = 4;
-			float dis = 0;
-			for (int i = 0; i < mip_level; i++)
-			{
-				sample_mip_level = i;
-				mat_model = matrix_set_scale(scale, scale, 1) * matrix_set_translate(dis, 0, 0);
-				mat_model_it = matrix_invert(mat_model).Transpose();
-				mat_mvp = mat_model * mat_view * mat_proj;
-				render.drawCall(plane_mesh2, vert_tex, frag_tex);
-				dis += scale;
-				//scale /= 2;
-				dis += scale;
-
-			}
-
-			// draw plane
-
-			//sample_mip_level = 1;
-			//mat_model = matrix_set_scale(scale, scale, 1);
-			//mat_model = matrix_set_identity();
-			//mat_model_it = matrix_invert(mat_model).Transpose();
-			//mat_mvp = mat_model * mat_view * mat_proj;
-			//render.drawCall(plane_mesh2, vert_tex, frag_tex);
+			float scale = 15;
+			mat_model = matrix_set_scale(scale, 1, scale) * matrix_set_translate(-scale, -10, scale);
+			mat_model_it = matrix_invert(mat_model).Transpose();
+			mat_mvp = mat_model * mat_view * mat_proj;
+			render.drawCall(plane_mesh, vert_tex, frag_tex);
 
 			// Resolve msaa
 			if (MSAA_ENABLE)
@@ -185,6 +165,12 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 			double fps = 1.0 / duration.count();
 			std::string fps_str = "FPS: " + std::to_string(static_cast<int>(fps));
 			show_str(hWnd, fps_str, WIDTH - 100, 20);
+
+			// show camera pos
+			std::string camera_pos_str = "Camera Pos: " + std::to_string(camera.pos.x) + " " +
+				std::to_string(camera.pos.y) + " " + std::to_string(camera.pos.z);
+			show_str(hWnd, camera_pos_str, 20, 20);
+
 			frame_count++;
 		}
 	}

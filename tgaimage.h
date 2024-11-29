@@ -49,6 +49,7 @@ namespace TGA
 
 		inline std::uint32_t sample2D(const Vec2f& uvf) const;
 		inline std::uint32_t sample_mipmap(const Vec2f& uvf, int level) const;
+		inline std::uint32_t sample_mipmap(const Vec2f& uvf, float level) const;
 
 		inline std::uint32_t SampleBilinear(float x, float y, int = -1) const;
 		inline std::uint32_t BilinearInterp(uint32_t, uint32_t, uint32_t, uint32_t, int32_t, int32_t) const;
@@ -371,6 +372,18 @@ namespace TGA
 		int mip_height = h >> level;
 		//return get(uvf.x * mip_width, uvf.y * mip_height, level);
 		return SampleBilinear(uvf.x * mip_width, uvf.y * mip_height, level);
+	}
+
+	std::uint32_t TGAImage::sample_mipmap(const Vec2f& uvf, float level) const
+	{
+		if (level < 0 || level >= mipmap.size())
+		{
+			return sample2D(uvf);
+		}
+		auto c1 = sample_mipmap(uvf, (int)level);
+		auto c2 = sample_mipmap(uvf, (int)level + 1);
+		float weight = level - (int)level;
+		return ApplyWeight(c1, 1.0f - weight) + ApplyWeight(c2, weight);
 	}
 
 
