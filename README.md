@@ -1,5 +1,24 @@
 # 软光栅
 
+
+
+## 简介&特征
+
++ 实现标准渲染管线
++ 着色器由 c++ 编写
++ 坐标系采用 directX 标准
++ 实现 Vector/Matrix 数学库, 包括常用矢量算法和矩阵算法
++ 实现 DDA, Bresenham 画线算法
++ 光栅化参数用重心插值
++ 实现 [ blinn-phong光照模型 ] 和 [ Gouraud光照模型 ]
++ 实现 obj 模型工具库
++ 加载 tga 纹理工具库
++ 实现 [ 双线性插值 ] 和 [ 双三次插值 ] 纹理采样算法
++ 实现 mipmap
++ 实现 msaa 抗锯齿算法
+
+
+
 ## 画线算法
 
 ![image.png](img/image.png)
@@ -51,3 +70,15 @@
 ## 效果
 
 ![mipmap.png](img/mipmap.png)
+
+
+
+
+
+## 主要参考
+
+https://github.com/skywind3000/RenderHelp
+
+https://bbs.huaweicloud.com/blogs/358776
+
+https://github.com/ssloy/tinyrenderer
