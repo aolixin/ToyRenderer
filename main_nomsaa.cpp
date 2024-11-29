@@ -1,4 +1,4 @@
-#if false
+#if true
 #include <windows.h>
 #include <chrono>
 
@@ -117,14 +117,14 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 			Vec4f pos = mesh.vertices[index].pos.xyz1() * mat_mvp;
 			Vec3f pos_world = (mesh.vertices[index].pos.xyz1() * mat_model).xyz();
 			Vec3f eye_dir = camera.pos - pos_world;
-			output.varying_vec2f[VARYING_UV] = mesh.vertices[index].uv;
+			output.varying_vec2f[VARYING_TEXUV] = mesh.vertices[index].uv;
 			output.varying_vec3f[VARYING_EYE] = eye_dir;
 			return pos;
 		};
 
 	auto frag_gouraud_tex = [&](ShaderContext& input) -> Vec4f
 		{
-			Vec2f uv = input.varying_vec2f[VARYING_UV];
+			Vec2f uv = input.varying_vec2f[VARYING_TEXUV];
 
 			Vec3f eye_dir = input.varying_vec3f[VARYING_EYE];
 

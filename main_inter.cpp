@@ -1,4 +1,4 @@
-#if true
+#if false
 #include <windows.h>
 #include <chrono>
 
@@ -92,12 +92,9 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	Vec3f light_dir = {-1, -1, 1};
 
 	TGA::TGAImage tga_image;
-
 	std::string file_path = "res/awesomeface.tga";
 	std::string file_path2 = "res/container.tga";
-
 	if (!tga_image.read_tga_file(file_path))return 0;
-
 	tga_image.CreateMipMap(mip_level);
 
 	auto vert_tex = [&](int index, ShaderContext& output) -> Vec4f
@@ -113,7 +110,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	auto frag_tex = [&](ShaderContext& vert_input) -> Vec4f
 	{
 		//float dx = 
-		return white_color.xyz1();
+		//return white_color.xyz1();
 		Vec2f uv = vert_input.varying_vec2f[VARYING_TEXUV];
 		return vector_from_color(tga_image.sample_mipmap(uv,sample_mip_level));
 		//return vector_from_color(tga_image.sample2D(uv));

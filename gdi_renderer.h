@@ -269,7 +269,7 @@ void Render::clearBuffer()
 			int idx = row * g_width + col;
 			// 默认背景色浅蓝 R123 G195 B221
 			g_frameBuff[idx] = _msaa_enable ? 0 : bgColor;
-			// 深度缓冲区 1.0f
+			// 深度缓冲区 0.0f
 			g_depthBuff[idx] = 0.0f;
 			// msaa
 			if (_msaa_enable)
@@ -468,10 +468,6 @@ void Render::rasterization_interpolation(const Vec2f& f0, const Vec2f& f1, const
 	{
 		frag_input.inside = false;
 	}
-	else
-	{
-		frag_input.inside = true;
-	}
 
 	Vec2f cxy = {(float)cx + 0.5f, (float)cy + 0.5f};
 
@@ -499,14 +495,13 @@ void Render::rasterization_interpolation(const Vec2f& f0, const Vec2f& f1, const
 	}
 	else
 	{
-		if (rhw <= target_depth[cy * g_width + cx])
+		if (rhw < target_depth[cy * g_width + cx])
 		{
 			frag_input.inside = false;
 		}
-		else if (rhw > target_depth[cy * g_width + cx])
+		else if (frag_input.inside)
 		{
 			target_depth[cy * g_width + cx] = rhw;
-			//frag_input.inside = frag_input.inside && true;
 		}
 	}
 
