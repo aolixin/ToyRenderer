@@ -18,7 +18,7 @@ constexpr int WIDTH = 1080;
 constexpr int HEIGHT = 720;
 
 constexpr bool MSAA_ENABLE = false;
-constexpr int mip_level = 4;
+constexpr int mip_level = 6;
 
 //Camera camera({2, 3, 4}, {0, 0, 0}, {0, 1, 0});
 Camera camera({0, 0, -3}, {0, 0, 0}, {0, 1, 0});
@@ -112,9 +112,11 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 
 	auto frag_tex = [&](ShaderContext& vert_input) -> Vec4f
 	{
-		//return white_color.xyz1();
+		//float dx = 
+		return white_color.xyz1();
 		Vec2f uv = vert_input.varying_vec2f[VARYING_TEXUV];
 		return vector_from_color(tga_image.sample_mipmap(uv,sample_mip_level));
+		//return vector_from_color(tga_image.sample2D(uv));
 	};
 
 	// renderer init
@@ -151,7 +153,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 			// show mipmap
 			float scale = 4;
 			float dis = 0;
-			for (int i = 0; i < mip_level; i++)
+			/*for (int i = 0; i < mip_level; i++)
 			{
 				sample_mip_level = i;
 				mat_model = matrix_set_scale(scale, scale, 1) * matrix_set_translate(dis, 0, 0);
@@ -162,16 +164,16 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 				scale /= 2;
 				dis += scale;
 
-			}
+			}*/
 
 			// draw plane
 
-			//sample_mip_level = 1;
+			sample_mip_level = 1;
 			//mat_model = matrix_set_scale(scale, scale, 1);
-			//mat_model = matrix_set_identity();
-			//mat_model_it = matrix_invert(mat_model).Transpose();
-			//mat_mvp = mat_model * mat_view * mat_proj;
-			//render.drawCall(plane_mesh2, vert_tex, frag_tex);
+			mat_model = matrix_set_identity();
+			mat_model_it = matrix_invert(mat_model).Transpose();
+			mat_mvp = mat_model * mat_view * mat_proj;
+			render.drawCall(plane_mesh2, vert_tex, frag_tex);
 
 			// Resolve msaa
 			if (MSAA_ENABLE)
@@ -186,6 +188,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 			double fps = 1.0 / duration.count();
 			std::string fps_str = "FPS: " + std::to_string(static_cast<int>(fps));
 			show_str(hWnd, fps_str, WIDTH - 100, 20);
+			frame_count++;
 		}
 	}
 

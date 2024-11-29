@@ -74,6 +74,9 @@
     <ClInclude Include="tgaimage.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="brick.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

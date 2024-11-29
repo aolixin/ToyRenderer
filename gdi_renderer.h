@@ -10,10 +10,13 @@
 #include "shader.h"
 #include "color.h"
 #include "msaa.h"
+#include "shader_instance.h"
 
 class Render
 {
 private:
+	const int quad_size = 2;
+
 	int g_width = 0;
 	int g_height = 0;
 
@@ -38,6 +41,10 @@ private:
 
 	std::unordered_map<int, bool**> id_coverage_mask;
 
+	std::vector<Vec2f> quad_uv = std::vector<Vec2f>(quad_size * quad_size);
+	std::vector<ShaderContext> quad_shader_context = std::vector<ShaderContext>(quad_size * quad_size);
+
+
 	bool _msaa_enable = false;
 
 public:
@@ -50,35 +57,39 @@ public:
 		g_height = h;
 	}
 
-	void inline initRenderer(HWND hWnd);
-	void inline update(HWND hWnd);
-	void inline clearBuffer();
-	void inline shutDown();
+	inline void initRenderer(HWND hWnd);
+	inline void update(HWND hWnd);
+	inline void clearBuffer();
+	inline void shutDown();
 
-	void inline drawCall(const Mesh& mesh, const VertexShader& vert, const FragmentShader& frag);
-	void inline drawCall_ortho(const Mesh& mesh, const VertexShader& vert, const FragmentShader& frag);
+	inline void drawCall(const Mesh& mesh, const VertexShader& vert, const FragmentShader& frag);
+	inline void drawCall_ortho(const Mesh& mesh, const VertexShader& vert, const FragmentShader& frag);
 
-	void inline drawPrimitive(const std::vector<int>&, const Mesh&, const VertexShader&, const FragmentShader&);
-	void inline drawPrimitive_ortho(const std::vector<int>& indices2draw, const Mesh& mesh,
+	inline void drawPrimitive(const std::vector<int>&, const Mesh&, const VertexShader&, const FragmentShader&);
+	inline void drawPrimitive_ortho(const std::vector<int>& indices2draw, const Mesh& mesh,
 	                                const VertexShader& vert_shader,
 	                                const FragmentShader& frag_shader);
 
-	void inline drawLineDDA(int x1, int y1, int x2, int y2, uint32_t color);
-	void inline drawLineBresenham(int x1, int y1, int x2, int y2, uint32_t color);
+	inline bool primitive_assembly(const std::vector<int>&, const Mesh&, const VertexShader&);
+
+	inline void drawLineDDA(int x1, int y1, int x2, int y2, uint32_t color);
+	inline void drawLineBresenham(int x1, int y1, int x2, int y2, uint32_t color);
 
 
-	void inline drawPixel(int x, int y, uint32_t color);
-	void inline ResolvePixel();
+	inline void drawPixel(int x, int y, uint32_t color);
+	inline void ResolvePixel();
 
-	int inline create_frame_buffer(int, int);
-	int inline create_depth_buffer(int, int);
+	inline int create_frame_buffer(int, int);
+	inline int create_depth_buffer(int, int);
 
-	void inline set_frame_buffer(int switch_id);
-	void inline set_depth_buffer(int id);
+	inline void set_frame_buffer(int switch_id);
+	inline void set_depth_buffer(int id);
 
-	void inline msaa_enable(bool enable);
+	inline void msaa_enable(bool enable);
 
-	bool inline inTriangle(const Vec2f&, const Vec2f&, const Vec2f&, const float&, const float&);
+	inline bool inTriangle(const Vec2f&, const Vec2f&, const Vec2f&, const float&, const float&);
+	inline void rasterization_interpolation(const Vec2f&, const Vec2f&, const Vec2f&, int, int,
+	                                        ShaderContext& frag_input);
 };
 
 // 初始化 id
@@ -321,14 +332,82 @@ void Render::drawCall(const Mesh& mesh, const VertexShader& vert, const Fragment
 void Render::drawPrimitive(const std::vector<int>& indices2draw, const Mesh& mesh, const VertexShader& vert_shader,
                            const FragmentShader& frag_shader)
 {
+	// 逐顶点操作 和 图元装配
+	bool pass = primitive_assembly(indices2draw, mesh, vert_shader);
+	if (!pass)return;
+
 	int _min_x = 0, _max_x = 0, _min_y = 0, _max_y = 0;
+	_min_x = g_width + 2;
+	_max_x = -1;
+	_min_y = g_height + 2;
+	_max_y = -1;
 
-	auto& target_frame = id_frame_buffer[this->target_frame_buffer_id];
-	auto& target_depth = id_depth_buffer[this->target_depth_buffer_id];
-	auto& target_msaa_frame = id_msaa_frame_buffer[this->target_frame_buffer_id];
-	auto& target_msaa_depth = id_msaa_depth_buffer[this->target_depth_buffer_id];
-	auto& target_coverage_mask = id_coverage_mask[this->target_frame_buffer_id];
+	for (auto& vert_attr : g_vertexAttr)
+	{
+		_min_x = Between(0, g_width - 1, Min(_min_x, vert_attr.spi.x));
+		_max_x = Between(0, g_width - 1, Max(_max_x, vert_attr.spi.x));
+		_min_y = Between(0, g_height - 1, Min(_min_y, vert_attr.spi.y));
+		_max_y = Between(0, g_height - 1, Max(_max_y, vert_attr.spi.y));
+	}
 
+	// 光栅化
+	//const Vec2i& p0 = g_vertexAttr[0].spi;
+	//const Vec2i& p1 = g_vertexAttr[1].spi;
+	//const Vec2i& p2 = g_vertexAttr[2].spi;
+
+	const Vec2f& f0 = g_vertexAttr[0].spf;
+	const Vec2f& f1 = g_vertexAttr[1].spf;
+	const Vec2f& f2 = g_vertexAttr[2].spf;
+
+	for (int quad_y = _min_y; quad_y <= _max_y; quad_y += quad_size)
+	{
+		for (int quad_x = _min_x; quad_x <= _max_x; quad_x += quad_size)
+		{
+			// 插值
+			rasterization_interpolation(f0, f1, f2, quad_x, quad_y, quad_shader_context[0]);
+			rasterization_interpolation(f0, f1, f2, quad_x + 1, quad_y, quad_shader_context[1]);
+			rasterization_interpolation(f0, f1, f2, quad_x, quad_y + 1, quad_shader_context[2]);
+			rasterization_interpolation(f0, f1, f2, quad_x + 1, quad_y + 1, quad_shader_context[3]);
+
+			bool inside = quad_shader_context[0].inside ||
+				quad_shader_context[1].inside ||
+				quad_shader_context[2].inside ||
+				quad_shader_context[3].inside;
+			if (!inside)continue;
+
+			// quad uv
+			quad_uv[0] = quad_shader_context[0].varying_vec2f[VARYING_TEXUV];
+			quad_uv[1] = quad_shader_context[1].varying_vec2f[VARYING_TEXUV];
+			quad_uv[2] = quad_shader_context[2].varying_vec2f[VARYING_TEXUV];
+			quad_uv[3] = quad_shader_context[3].varying_vec2f[VARYING_TEXUV];
+
+			float du = quad_uv[1].u - quad_uv[0].u;
+			float dv = quad_uv[2].u - quad_uv[0].u;
+			// frag
+			for (int i = 0; i < quad_size * quad_size; i++)
+			{
+				auto& frag_input = quad_shader_context[i];
+				if (!frag_input.inside)continue;
+
+				//frag_input.varying_vec2f[VARYING_DUDV] = Vec2f{du, dv};
+				auto color = frag_shader(frag_input);
+				drawPixel(quad_x + i % quad_size, quad_y + i / quad_size, vector_to_color(color));
+			}
+		}
+	}
+
+
+	// 3. 绘制三角形边框
+	//drawLineBresenham(g_vertexAttr[0].spi.x, g_vertexAttr[0].spi.y, g_vertexAttr[1].spi.x, g_vertexAttr[1].spi.y,
+	//                  0x000000);
+	//drawLineBresenham(g_vertexAttr[1].spi.x, g_vertexAttr[1].spi.y, g_vertexAttr[2].spi.x, g_vertexAttr[2].spi.y,
+	//                  0x000000);
+	//drawLineBresenham(g_vertexAttr[2].spi.x, g_vertexAttr[2].spi.y, g_vertexAttr[0].spi.x, g_vertexAttr[0].spi.y,
+	//                  0x000000);
+}
+
+bool Render::primitive_assembly(const std::vector<int>& indices2draw, const Mesh& mesh, const VertexShader& vert_shader)
+{
 	// 顶点着色器
 	for (int k = 0; k < 3; ++k)
 	{
@@ -342,9 +421,9 @@ void Render::drawPrimitive(const std::vector<int>& indices2draw, const Mesh& mes
 		vert_attri.pos = vert_shader(idx, vert_attri.context);
 
 		float w = Abs(vert_attri.pos.w);
-		if (w == 0.0f)return;
+		if (w == 0.0f)return false;
 
-		if (vert_attri.pos.z < 0 || vert_attri.pos.z > w)return;
+		if (vert_attri.pos.z < 0 || vert_attri.pos.z > w)return false;
 		//if (vert_attri.pos.x < -w || vert_attri.pos.x > w)return;
 		//if (vert_attri.pos.y < -w || vert_attri.pos.y > w)return;
 
@@ -367,191 +446,121 @@ void Render::drawPrimitive(const std::vector<int>& indices2draw, const Mesh& mes
 
 		vert_attri.spi.x = (int)(vert_attri.spf.x + 0.5f);
 		vert_attri.spi.y = (int)(vert_attri.spf.y + 0.5f);
-
-		if (k == 0)
-		{
-			_min_x = _max_x = Between(0, g_width - 1, vert_attri.spi.x);
-			_min_y = _max_y = Between(0, g_height - 1, vert_attri.spi.y);
-		}
-		else
-		{
-			_min_x = Between(0, g_width - 1, Min(_min_x, vert_attri.spi.x));
-			_max_x = Between(0, g_width - 1, Max(_max_x, vert_attri.spi.x));
-			_min_y = Between(0, g_height - 1, Min(_min_y, vert_attri.spi.y));
-			_max_y = Between(0, g_height - 1, Max(_max_y, vert_attri.spi.y));
-		}
 	}
 
 	// 背面剔除
 	Vec4f v01 = g_vertexAttr[1].pos - g_vertexAttr[0].pos;
 	Vec4f v02 = g_vertexAttr[2].pos - g_vertexAttr[0].pos;
 	Vec4f normal = vector_cross(v01, v02);
-	if (normal.z >= 0)return;
+	if (normal.z >= 0)return false;
 
+	return true;
+}
 
-	// 光栅化
+void Render::rasterization_interpolation(const Vec2f& f0, const Vec2f& f1, const Vec2f& f2, int cx, int cy,
+                                         ShaderContext& frag_input)
+{
+	frag_input.Reset();
 
-	const Vec2i& p0 = g_vertexAttr[0].spi;
-	const Vec2i& p1 = g_vertexAttr[1].spi;
-	const Vec2i& p2 = g_vertexAttr[2].spi;
+	auto& target_depth = id_depth_buffer[this->target_depth_buffer_id];
 
-	const Vec2f& f0 = g_vertexAttr[0].spf;
-	const Vec2f& f1 = g_vertexAttr[1].spf;
-	const Vec2f& f2 = g_vertexAttr[2].spf;
-
-
-	for (int cy = _min_y; cy <= _max_y; cy++)
+	if (!inTriangle(f0, f1, f2, cx + 0.5f, cy + 0.5f))
 	{
-		for (int cx = _min_x; cx <= _max_x; cx++)
+		frag_input.inside = false;
+	}
+	else
+	{
+		frag_input.inside = true;
+	}
+
+	Vec2f cxy = {(float)cx + 0.5f, (float)cy + 0.5f};
+
+	Vec2f s0 = f0 - cxy;
+	Vec2f s1 = f1 - cxy;
+	Vec2f s2 = f2 - cxy;
+
+	float a = Abs(vector_cross(s1, s2));
+	float b = Abs(vector_cross(s2, s0));
+	float c = Abs(vector_cross(s0, s1));
+
+	float s = a + b + c;
+	if (s == 0.0f)return;
+
+	a = a * (1.0f / s);
+	b = b * (1.0f / s);
+	c = c * (1.0f / s);
+
+	// 计算当前点的 1/w，因 1/w 和屏幕空间呈线性关系，故直接重心插值
+	float rhw = g_vertexAttr[0].pos.z * a + g_vertexAttr[1].pos.z * b + g_vertexAttr[2].pos.z * c;
+
+	if (cx < 0 || cx >= g_width || cy < 0 || cy >= g_height)
+	{
+		frag_input.inside = false;
+	}
+	else
+	{
+		if (rhw <= target_depth[cy * g_width + cx])
 		{
-			// msaa
-			if (_msaa_enable)
-			{
-				int cnt = 0;
-				int row = (int)sqrt(MULTISAPLE);
-				int col = (int)sqrt(MULTISAPLE);
-				float step = 1.0f / (row + 1.0f);
-
-				int idx = cy * g_width + cx;
-				for (int j = 0; j < row; j++)
-				{
-					for (int i = 0; i < col; i++)
-					{
-						int sub_idx = j * col + i;
-						float fx = static_cast<float>(cx) + static_cast<float>(i + 1) * step;
-						float fy = static_cast<float>(cy) + static_cast<float>(j + 1) * step;
-						if (!inTriangle(f0, f1, f2, fx, fy))continue;
-
-						Vec2f cxy = {fx, fy};
-						Vec2f s0 = f0 - cxy;
-						Vec2f s1 = f1 - cxy;
-						Vec2f s2 = f2 - cxy;
-						float a = Abs(vector_cross(s1, s2));
-						float b = Abs(vector_cross(s2, s0));
-						float c = Abs(vector_cross(s0, s1));
-						float s = a + b + c;
-						if (s == 0.0f)continue;
-
-						a = a * (1.0f / s);
-						b = b * (1.0f / s);
-						c = c * (1.0f / s);
-						float rhw = g_vertexAttr[0].pos.z * a + g_vertexAttr[1].pos.z * b + g_vertexAttr[2].pos.z * c;
-						if (rhw < target_msaa_depth[idx][sub_idx])continue;
-
-						target_msaa_depth[idx][sub_idx] = rhw;
-						target_coverage_mask[idx][sub_idx] = true;
-						cnt++;
-					}
-				}
-
-				if (cnt == 0)continue;
-			}
-
-			// 判断是不是在三角形内部
-
-			if (!_msaa_enable && !inTriangle(f0, f1, f2, cx, cy))continue;
-
-			Vec2f cxy = {(float)cx + 0.5f, (float)cy + 0.5f};
-
-			Vec2f s0 = f0 - cxy;
-			Vec2f s1 = f1 - cxy;
-			Vec2f s2 = f2 - cxy;
-
-			float a = Abs(vector_cross(s1, s2));
-			float b = Abs(vector_cross(s2, s0));
-			float c = Abs(vector_cross(s0, s1));
-
-			float s = a + b + c;
-			if (s == 0.0f)continue;
-
-			a = a * (1.0f / s);
-			b = b * (1.0f / s);
-			c = c * (1.0f / s);
-
-			// 计算当前点的 1/w，因 1/w 和屏幕空间呈线性关系，故直接重心插值
-			float rhw = g_vertexAttr[0].pos.z * a + g_vertexAttr[1].pos.z * b + g_vertexAttr[2].pos.z * c;
-
-			// 深度测试
-			if (!_msaa_enable && rhw < target_depth[cy * g_width + cx]) continue;
+			frag_input.inside = false;
+		}
+		else if (rhw > target_depth[cy * g_width + cx])
+		{
 			target_depth[cy * g_width + cx] = rhw;
-
-
-			// 还原当前像素的 w
-			float w = 1.0f / ((rhw != 0.0f) ? rhw : 1.0f);
-
-			// 计算插值系数
-			float c0 = g_vertexAttr[0].pos.z * a * w;
-			float c1 = g_vertexAttr[1].pos.z * b * w;
-			float c2 = g_vertexAttr[2].pos.z * c * w;
-
-			ShaderContext frag_input;
-			ShaderContext& con0 = g_vertexAttr[0].context;
-			ShaderContext& con1 = g_vertexAttr[1].context;
-			ShaderContext& con2 = g_vertexAttr[2].context;
-
-			for (const auto& it : con0.varying_float)
-			{
-				int key = it.first;
-				float f0 = con0.varying_float[key];
-				float f1 = con1.varying_float[key];
-				float f2 = con2.varying_float[key];
-				frag_input.varying_float[key] = c0 * f0 + c1 * f1 + c2 * f2;
-			}
-
-			for (const auto& it : con0.varying_vec2f)
-			{
-				int key = it.first;
-				const auto& f0 = con0.varying_vec2f[key];
-				const auto& f1 = con1.varying_vec2f[key];
-				const auto& f2 = con2.varying_vec2f[key];
-				frag_input.varying_vec2f[key] = c0 * f0 + c1 * f1 + c2 * f2;
-			}
-
-			for (const auto& it : con0.varying_vec3f)
-			{
-				int key = it.first;
-				const auto& f0 = con0.varying_vec3f[key];
-				const auto& f1 = con1.varying_vec3f[key];
-				const auto& f2 = con2.varying_vec3f[key];
-				frag_input.varying_vec3f[key] = c0 * f0 + c1 * f1 + c2 * f2;
-			}
-
-			for (const auto& it : con0.varying_vec4f)
-			{
-				int key = it.first;
-				const auto& f0 = con0.varying_vec4f[key];
-				const auto& f1 = con1.varying_vec4f[key];
-				const auto& f2 = con2.varying_vec4f[key];
-				frag_input.varying_vec4f[key] = c0 * f0 + c1 * f1 + c2 * f2;
-			}
-
-			Vec4f color = {0.0f, 0.0f, 0.0f, 0.0f};
-			color = frag_shader(frag_input);
-
-			auto color32 = vector_to_color(color);
-
-			if (_msaa_enable)
-			{
-				for (int i = 0; i < MULTISAPLE; i++)
-				{
-					if (target_coverage_mask[cy * g_width + cx][i] /*&& rhw > target_msaa_depth[cy * g_width + cx][i]*/)
-					{
-						target_msaa_frame[cy * g_width + cx][i] = color;
-					}
-				}
-			}
-			else drawPixel(cx, cy, color32);
+			//frag_input.inside = frag_input.inside && true;
 		}
 	}
 
-	// 3. 绘制三角形边框
-	//drawLineBresenham(g_vertexAttr[0].spi.x, g_vertexAttr[0].spi.y, g_vertexAttr[1].spi.x, g_vertexAttr[1].spi.y,
-	//                  0x000000);
-	//drawLineBresenham(g_vertexAttr[1].spi.x, g_vertexAttr[1].spi.y, g_vertexAttr[2].spi.x, g_vertexAttr[2].spi.y,
-	//                  0x000000);
-	//drawLineBresenham(g_vertexAttr[2].spi.x, g_vertexAttr[2].spi.y, g_vertexAttr[0].spi.x, g_vertexAttr[0].spi.y,
-	//                  0x000000);
+
+	// 还原当前像素的 w
+	float w = 1.0f / ((rhw != 0.0f) ? rhw : 1.0f);
+
+	// 计算插值系数
+	float c0 = g_vertexAttr[0].pos.z * a * w;
+	float c1 = g_vertexAttr[1].pos.z * b * w;
+	float c2 = g_vertexAttr[2].pos.z * c * w;
+
+
+	ShaderContext& con0 = g_vertexAttr[0].context;
+	ShaderContext& con1 = g_vertexAttr[1].context;
+	ShaderContext& con2 = g_vertexAttr[2].context;
+
+	for (const auto& it : con0.varying_float)
+	{
+		int key = it.first;
+		float f0 = con0.varying_float[key];
+		float f1 = con1.varying_float[key];
+		float f2 = con2.varying_float[key];
+		frag_input.varying_float[key] = c0 * f0 + c1 * f1 + c2 * f2;
+	}
+
+	for (const auto& it : con0.varying_vec2f)
+	{
+		int key = it.first;
+		const auto& f0 = con0.varying_vec2f[key];
+		const auto& f1 = con1.varying_vec2f[key];
+		const auto& f2 = con2.varying_vec2f[key];
+		frag_input.varying_vec2f[key] = c0 * f0 + c1 * f1 + c2 * f2;
+	}
+
+	for (const auto& it : con0.varying_vec3f)
+	{
+		int key = it.first;
+		const auto& f0 = con0.varying_vec3f[key];
+		const auto& f1 = con1.varying_vec3f[key];
+		const auto& f2 = con2.varying_vec3f[key];
+		frag_input.varying_vec3f[key] = c0 * f0 + c1 * f1 + c2 * f2;
+	}
+
+	for (const auto& it : con0.varying_vec4f)
+	{
+		int key = it.first;
+		const auto& f0 = con0.varying_vec4f[key];
+		const auto& f1 = con1.varying_vec4f[key];
+		const auto& f2 = con2.varying_vec4f[key];
+		frag_input.varying_vec4f[key] = c0 * f0 + c1 * f1 + c2 * f2;
+	}
 }
+
 
 void Render::drawCall_ortho(const Mesh& mesh, const VertexShader& vert, const FragmentShader& frag)
 {

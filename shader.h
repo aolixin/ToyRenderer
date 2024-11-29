@@ -11,6 +11,16 @@ public:
 	std::map<int, Vec2f> varying_vec2f;
 	std::map<int, Vec3f> varying_vec3f;
 	std::map<int, Vec4f> varying_vec4f;
+	bool inside = true;
+
+	void Reset()
+	{
+		varying_float.clear();
+		varying_vec2f.clear();
+		varying_vec3f.clear();
+		varying_vec4f.clear();
+		inside = true;
+	}
 };
 
 

@@ -8,9 +8,12 @@ constexpr int VARYING_TEXUV = 0;
 constexpr int VARYING_COLOR = 1;
 constexpr int VARYING_LIGHT = 2;
 
-constexpr int VARYING_UV = 3;
-constexpr int VARYING_EYE = 4; // 眼睛相对顶点的位置
-constexpr int VARYING_NORMAL = 4; // 眼睛相对顶点的位置
+constexpr int VARYING_EYE = 3; 
+constexpr int VARYING_NORMAL = 4; 
+
+constexpr int VARYING_DUDV = 5;
+
+
 
 
 Mesh cube_mesh({
